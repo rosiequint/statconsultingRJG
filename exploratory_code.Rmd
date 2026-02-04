@@ -29,7 +29,7 @@ selected_data <- all_data %>%
     v822, # wife justified asking husband to use condom if he has STI
     v301, # knowledge of any method of contraception
     v474a, v474b, v474c, v474d, v474e, v474f, # knowldge about TB - spread by different methods
-    v751, # ever heard of AIDS
+    v751, # ever heard of AIDS, couldn't find 751BP-WP
     v777) # shame about HIV (couldn't find 777a)
 
 # write_csv(selected_data, "selected_data.csv")
@@ -39,8 +39,9 @@ selected_data <- selected_data %>%
   mutate(man_listening = factor(ifelse(v812 > 0  | v813 > 0 , 1, 0)), # CHECK THIS - what does coding '2' mean here?
          anybeating_justified = ifelse(v744a == 1 | v744b == 1 | v744c == 1 | v744d == 1 | v744e == 1, 1, 0),
          owns_house_or_land = ifelse(v745a == 1 | v745b == 1, 1, 0),
-         tb_knowledge = ifelse(v474a == 1 | v474b == 1 | v474c == 1 | v474d == 1 | v474e == 1 | v474f == 1, 1, 0) # all NAs
-  )
+         tb_knowledge = ifelse(v474a == 1 | v474b == 1 | v474c == 1 | v474d == 1 | v474e == 1 | v474f == 1, 1, 0), # all NAs
+  age_first_cohab = v012 - (2015 - v508)
+         )
 
 
 # remove those with missing data for man_listening variable
@@ -71,7 +72,7 @@ selected_data_filtered <- selected_data_filtered %>%
     ## demographics
     v012 = as.numeric(v012),   # age
     v505 = as.numeric(v505),   # number of co-wives
-    v508 = as.numeric(v508),   # year first cohabitation
+    age_first_cohab = as.numeric(age_first_cohab),   # year first cohabitation
     
     ## binary / categorical DHS variables → factors
     across(
@@ -93,7 +94,7 @@ selected_data_filtered <- selected_data_filtered %>%
 
 label(selected_data_filtered$v012)  <- "Age at interview (years)"
 label(selected_data_filtered$v505) <- "Number of co-wives"
-label(selected_data_filtered$v508) <- "Year of first cohabitation"
+label(selected_data_filtered$age_first_cohab) <- "Age at first cohabitation"
 
 label(selected_data_filtered$v632) <- "Husband decides on contraception"
 
@@ -120,7 +121,7 @@ label(selected_data_filtered$v777) <- "Feels shame if HIV positive"
 
 
 table1(
-  ~ v012 + v505 + v508 +
+  ~ v012 + v505 + age_first_cohab +
     v632 +
     v744a + v744b + v744c + v744d + v744e +
     v763a +
@@ -132,7 +133,7 @@ table1(
 )
 
 table1(
-  ~ v012 + v505 + v508 +
+  ~ v012 + v505 + age_first_cohab +
     v632 +
     v763a +
     v812 + v813 +
