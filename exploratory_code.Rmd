@@ -1,0 +1,44 @@
+---
+title: "Stat Consulting Project - Exploratory Analysis"
+author: "Rosie Quint"
+date: "2026-02-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(haven)
+library(tidyverse)
+
+all_data <- read_dta("/Users/rosiequint/Downloads/zzir62dt/ZZIR62FL.DTA")
+
+# extract relevant variables
+selected_data <- all_data %>%
+  select(
+    v012, # age at questioning
+    v505, # how many other wives 
+    v632, # husband as contraception decision-maker
+    v744a, v744b, v744c, v744d, v744e, # believes beating justified
+    v763a, # any STI last 12 months
+    v812, v813,
+    v745a, v745b,
+    v508,
+    v822,
+    v474a, v474b, v474c, v474d, v474e, v474f,
+    v751, 
+    v777) #, v777a)
+
+# create man listening variable based on if either v812 (husband listening) or v813 (other man listening) is true 
+selected_data <- selected_data %>%
+  mutate(man_listening = factor(ifelse(v812 > 0  | v813 > 0 , 1, 0))) # CHECK THIS - what does coding '2' mean here?
+
+# plot number of other wives (v505) distribution by man_listening status
+ggplot(data = selected_data, aes(x = man_listening, y = v505)) +
+  geom_violin()
+
+hist(selected_data$v505)
+
+```
