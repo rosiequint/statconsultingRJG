@@ -9,10 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## This will go in section 1 
 ```{r}
 library(haven)
 library(tidyverse)
-
 all_data <- read_dta("ZZIR62FL.DTA")
 
 # extract relevant variables
@@ -33,8 +33,11 @@ selected_data <- all_data %>%
     v751, # ever heard of AIDS, couldn't find 751BP-WP
     v777,# shame about HIV (couldn't find 777a)
     v746 ) # earns more than husband: 1 = more than him, 2 = less, 3 = about the same, 4 = husband brings in no money, 8 = dont know, 9 = missing
+```
 
-
+# Section 2: Descriptives 
+## Creating new variables 
+```{r}
 # create man listening variable based on if either v812 (husband listening) or v813 (other man listening) is true 
 selected_data <- selected_data %>%
   mutate(
@@ -45,148 +48,154 @@ selected_data <- selected_data %>%
          )
 ```
 
-Exploratory plots and descriptives
-```{r}
+## Exploratory plots and descriptives
 
+
+### Summarise a binary variable (man_listening)
+```{r}
+summary(selected_data$man_listening)
+```
+
+### Summmarise a continuous variable with histograms
+```{r}
 # create histogram for number of other wives (v505)
 ggplot(data = selected_data, aes(x = v505)) +
   geom_histogram(binwidth = 1) + # add title
   ggtitle("Distribution of Number of Co-Wives (v505)")
 
-# same histogram with anomaly removed (v505 > 10)
-ggplot(data = selected_data %>% filter(v505 <= 10), aes(x = v505)) +
+# remove outliers in v505 (those with more than 10 co-wives) - these are likely data errors
+selected_data_cleaned <- selected_data %>%
+  filter(v505 <= 10)
+
+# same histogram with outlier removed 
+ggplot(data = selected_data_cleaned, aes(x = v505)) +
   geom_histogram(binwidth = 1) + 
-  ggtitle("Distribution of Number of Co-Wives (v505) with Anomalies Removed")
-
-# plot husband as decision-maker
-ggplot(data = selected_data, aes(x = v632)) +
-  geom_bar() + 
-  ggtitle("Husband as Contraception Decision-Maker (v632)") + #annotate what each number means
-  scale_x_continuous(breaks = c(1,2,3,6,9),
-                     labels = c("Mainly respondent", "Mainly husband/partner", "Joint decision", "Other", "Missing")) +  # turn labels 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylab("Count")
-
+  ggtitle("Distribution of Number of Co-Wives (v505) with Outliers Removed")
 ```
 
-
-Table 1 - variable summaries
+### Plot data stratified by a variable 
 ```{r}
-library(table1)
+# investigate husband as contraception decision-maker variable 
+summary(selected_data$v632)
+# plot husband as contraception decision-maker
+ggplot(data = selected_data, aes(x = v632)) +
+  geom_bar() +
+  ggtitle("Distribution of Husband as Contraception Decision-Maker (v632)") + 
+  scale_x_continuous(breaks = c(1, 2, 3, 6), labels = c("Mainly respondent", "Mainly husband/partner", "Joint decision", "Other")) + 
+  theme_minimal()
 
-selected_data <- selected_data %>%
+
+# plot husband as decision-maker, stratified by mann listening 
+plot_df <- selected_data %>%
+  filter(!is.na(v632), !is.na(man_listening)) %>%
   mutate(
-    ## demographics
-    v012 = as.numeric(v012),   # age
-    v505 = as.numeric(v505),   # number of co-wives
-    age_first_cohab = as.numeric(age_first_cohab),   # year first cohabitation
-    
-    ## binary / categorical DHS variables → factors
-    across(
-      c(
-        v632,      # husband decides contraception
-        v744a, v744b, v744c, v744d, v744e,  # beating justified reasons
-        v763a,     # STI last 12 months
-        v812, v813,# presence during interview
-        v745a, v745b, # house / land ownership
-        v822,      # justified asking condom
-        v301,      # knows contraception
-        v474a, v474b, v474c, v474d, v474e, v474f, # TB knowledge items
-        v751,      # ever heard of AIDS
-        v777,       # shame about HIV
-        anybeating_justified,
-        man_listening,
-        owns_house_or_land
-      ),
-      ~ factor(.)
+    v632 = factor(
+      v632,
+      levels = c(1, 2, 3, 6),
+      labels = c(
+        "Mainly respondent",
+        "Mainly husband/partner",
+        "Joint decision",
+        "Other"
+      )
     )
-  )
+  ) %>%
+  group_by(man_listening, v632) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(man_listening) %>%
+  mutate(percent = n / sum(n) * 100)
 
-label(selected_data$v012)  <- "Age at interview (years)"
-label(selected_data$v505) <- "Number of co-wives"
-label(selected_data$age_first_cohab) <- "Age at first cohabitation"
-
-label(selected_data$v632) <- "Husband decides on contraception"
-
-label(selected_data$v744a) <- "Beating justified: goes out without telling"
-label(selected_data$v744b) <- "Beating justified: neglects children"
-label(selected_data$v744c) <- "Beating justified: argues with husband"
-label(selected_data$v744d) <- "Beating justified: refuses sex"
-label(selected_data$v744e) <- "Beating justified: burns food"
-
-label(selected_data$v763a) <- "Had STI in last 12 months"
-
-label(selected_data$v812) <- "Husband present during interview"
-label(selected_data$v813) <- "Other male present during interview"
-
-label(selected_data$v745a) <- "Owns house"
-label(selected_data$v745b) <- "Owns land"
-
-label(selected_data$v822) <- "Justified asking condom if husband has STI"
-label(selected_data$v301) <- "Knows any contraceptive method"
-
-
-label(selected_data$v751) <- "Ever heard of AIDS"
-label(selected_data$v777) <- "Feels shame if HIV positive"
-
-label(selected_data$anybeating_justified) <- "YES to any wife beating justified questions"
-label(selected_data$man_listening) <- "Any man listening"
-label(selected_data$owns_house_or_land) <- "Owns house or land"
-label(selected_data$age_first_cohab) <- "Age at first cohabitation"
-
-
-table1(
-  ~ v012 + v505 + age_first_cohab +
-    v632 +
-    v744a + v744b + v744c + v744d + v744e +
-    v763a +
-    v812 + v813 +
-    v745a + v745b +
-    v822 + v301 +
-    v751 + v777 + 
-    anybeating_justified + man_listening + owns_house_or_land + age_first_cohab,
-  data = selected_data
-)
-
-
-# table 1 stratified by man listening status
-# remove those with missing data for man_listening variable
-selected_data_manlistening <- selected_data %>%
-  filter(!is.na(man_listening), man_listening != 9)
-
-table1(
-  ~ v012 + v505 + age_first_cohab +
-    v632 +
-    v763a +
-    v812 + v813 +
-    v745a + v745b +
-    v822 + v301 +
-    v751 + v777 + anybeating_justified + owns_house_or_land + age_first_cohab | man_listening,
-  data = selected_data_manlistening
-)
-
+ggplot(plot_df, aes(x = v632, y = percent, fill = factor(man_listening))) +
+  geom_col(position = "dodge") +
+  labs(
+    x = "Who decides about contraception",
+    y = "Percent within listening group",
+    fill = "Man listens"
+  ) +
+  theme_minimal()
 ```
 
+Descriptives related to predictors in question 1- violin plot for with man listening vs without
 
-
-Descriptives related to predictors in question 1-  violin plot for with man listening vs without 
 ```{r}
 # plot number of other wives (v505) distribution by man_listening status
-ggplot(data = selected_data_manlistening, aes(x = man_listening, y = v505)) +
-  geom_violin()
+ggplot(data = selected_data, aes(x = man_listening, y = v505)) +
+  geom_violin() + 
+  ggtitle("Distribution of number of other wives (v505) by man listening status")
+
+ggplot(data = selected_data_cleaned, aes(x = man_listening, y = v505)) +
+  geom_violin() + 
+  ggtitle("Distribution of number of other wives (v505) by man listening status, outliers removed ")
 
 ```
 
-Objective 2: protective factors 
-Scatter plots 
+## Table 1 variable summary
+First, we are going to load the R package table1, which will do most of the heavy lifting for us! 
 ```{r}
-selected_data_protectivefactors <- selected_data %>%
-  select(v746, owns_house_or_land, age_first_cohab, v822, v763a) %>% # remove na
-  filter(!is.na(v746), !is.na(owns_house_or_land), !is.na(age_first_cohab), !is.na(v822), !is.na(v763a))
+library(table1)
+```
 
+Then, we will select the variables we are interested in summarizing
+```{r}
+table1_data <- selected_data %>%
+  select(v012, v632, v505, man_listening, anybeating_justified)
+```
+
+Ensure variables ar in the correct format (numeric if we want to report means and standard deviations or factor if we want to report percentages)
+```{r}
+table1_data <- table1_data %>%
+  mutate(
+    v012 = as.numeric(v012),
+    v505 = as.numeric(v505),
+
+    v632 = factor(
+      v632,
+      levels = c(1, 2, 3, 6),
+      labels = c(
+        "Mainly respondent decides",
+        "Mainly husband/partner decides",
+        "Joint decision",
+        "Other"
+      )
+    ),
+
+    man_listening = factor(
+      man_listening,
+      levels = c(0, 1),
+      labels = c("No", "Yes")
+    )
+  )
+```
+
+Add labels to be included in the table
+```{r}
+label(table1_data$v012)  <- "Age at interview (years)"
+label(table1_data$v505) <- "Number of co-wives"
+label(table1_data$v632) <- "Husband decides on contraception"
+label(table1_data$anybeating_justified) <- "YES to any wife beating justified questions"
+label(table1_data$man_listening) <- "Any man listening"
+```
+
+Generate table 1
+```{r}
 table1(
-  ~ v746 + owns_house_or_land + age_first_cohab + v822 | v763a,
-  data = selected_data_protectivefactors
+  ~ v012 + v505 + v632 +
+    anybeating_justified + man_listening,
+  data = table1_data
 )
 ```
-Question 2 
+
+Optional: generate table 1 stratified by man listening status
+```{r}
+# table 1 stratified by man listening status
+# remove those with missing data for man_listening variable
+table1_data_strat <- table1_data %>%
+  filter(!is.na(man_listening))
+
+table1(
+  ~ v012 + v505 + v632 + anybeating_justified | man_listening,
+  data = table1_data_strat
+)
+```
+
+
