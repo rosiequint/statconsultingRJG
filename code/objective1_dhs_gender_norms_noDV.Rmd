@@ -1,0 +1,440 @@
+---
+title: "Objective 1 — DHS Model Dataset (Gender Norms) (No DV in Model Data)"
+author: "Guan Gui"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output:
+  rmdformats::readthedown
+---
+
+## Purpose (Objective 1)
+
+Objective 1 examines whether gender norms/traditions relate to women’s outcomes and whether results differ for those with vs. without *men listening*.
+
+- Predictors (gender norms):
+  - Number of other wives (`v505`)
+  - Husband is the decision-maker about contraception (`v632`)
+  - Endorsing wife beating justified (`v744a`–`v744e`; also summarized as `beat_any_justified`)
+- Outcomes used in this model-data demo:
+  - Contraception use (any method; derived from `v312`)
+  - STI risk (`v763a`)
+- Effect modifier:
+  - Men listening (`v812`, `v813`)
+- Survey design:
+  - Weight `v005`, PSU `v021`, strata `v022` (typical for DHS IR files)
+
+**Note about Domestic Violence (DV):** the DHS *model* IR dataset used here does **not** include DV outcome variables; the code below verifies DV is entirely missing (all `NA`) and DV analyses are excluded from this demo.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+pkgs <- c(
+  "haven","labelled",
+  "dplyr","tidyr","stringr",
+  "ggplot2",
+  "survey",
+  "broom"
+)
+
+to_install <- pkgs[!pkgs %in% installed.packages()[, "Package"]]
+if (length(to_install) > 0) install.packages(to_install)
+invisible(lapply(pkgs, library, character.only = TRUE))
+
+# IMPORTANT for DHS survey domain estimates (by groups)
+options(
+  survey.lonely.psu = "adjust",
+  survey.adjust.domain.lonely = TRUE
+)
+
+dhs_weight <- function(x) as.numeric(x) / 1e6
+
+assert_vars <- function(df, vars, name = "data") {
+  miss <- setdiff(vars, names(df))
+  if (length(miss) > 0) message(sprintf("[%s] Missing variables: %s", name, paste(miss, collapse=", ")))
+  invisible(miss)
+}
+
+# Compact label summary (useful for correct recoding)
+label_summary <- function(df, var) {
+  if (!var %in% names(df)) return(invisible(NULL))
+  x <- df[[var]]
+  cat("\n---\n")
+  cat("Variable:", var, "\n")
+  cat("Label:", labelled::var_label(x), "\n")
+  vl <- labelled::val_labels(x)
+  if (!is.null(vl) && length(vl) > 0) {
+    cat("Value labels (code = label):\n")
+    print(vl)
+  } else {
+    cat("Value labels: <none>\n")
+  }
+  cat("Tabulation (including NA):\n")
+  print(table(as.numeric(x), useNA = "ifany"))
+  invisible(NULL)
+}
+
+# Weighted proportion of (x == value) by subgroup using subset()+svymean()
+w_prop_eq <- function(des, outcome_var, value = 1, group_var = "man_listening") {
+  f <- as.formula(sprintf("~I(1 * (as.numeric(%s) == %s))", outcome_var, value))
+
+  # overall
+  est_all <- survey::svymean(f, des, na.rm = TRUE)
+  out_all <- data.frame(
+    group = "Overall",
+    p = as.numeric(coef(est_all)[1]),
+    p_se = as.numeric(SE(est_all)[1])
+  )
+
+  # by group
+  groups <- sort(unique(des$variables[[group_var]]))
+  groups <- groups[!is.na(groups)]
+
+  out_g <- do.call(rbind, lapply(groups, function(g) {
+    est <- survey::svymean(f, subset(des, des$variables[[group_var]] == g), na.rm = TRUE)
+    data.frame(
+      group = as.character(g),
+      p = as.numeric(coef(est)[1]),
+      p_se = as.numeric(SE(est)[1])
+    )
+  }))
+
+  # label groups nicely if 0/1
+  out_g$group <- ifelse(out_g$group == "0", "No", ifelse(out_g$group == "1", "Yes", out_g$group))
+
+  rbind(out_all, out_g)
+}
+
+# Odds ratios + CI for svyglm logistic
+tidy_or <- function(fit) {
+  tt <- broom::tidy(fit)
+  tt %>%
+    mutate(
+      OR = exp(estimate),
+      OR_low = exp(estimate - 1.96 * std.error),
+      OR_high = exp(estimate + 1.96 * std.error)
+    ) %>%
+    select(term, estimate, std.error, statistic, p.value, OR, OR_low, OR_high)
+}
+```
+
+# 1) Load Women’s IR model dataset
+
+```{r paths-load}
+# Rmd is assumed to be under: project_analysis/code
+# Data is assumed to be under: project_analysis/data
+data_dir <- normalizePath(file.path("..", "data"))
+path_ir <- file.path(data_dir, "zzir62dt", "ZZIR62FL.DTA")
+stopifnot(file.exists(path_ir))
+
+ir_full <- haven::read_dta(path_ir)
+
+dim(ir_full)
+```
+
+# 2) Keep ONLY Objective 1 variables (plus minimal covariates)
+
+```{r select-vars}
+vars_ir <- c(
+  # Survey design
+  "v005","v021","v022",
+  # Effect modifier
+  "v812","v813",
+  # Predictors
+  "v505","v632","v744a","v744b","v744c","v744d","v744e",
+  # Outcomes
+  "v312","v763a",
+  # Minimal covariates (commonly used)
+  "v012","v106"
+)
+
+assert_vars(ir_full, vars_ir, "IR full")
+ir <- ir_full %>% dplyr::select(any_of(vars_ir))
+
+dim(ir)
+names(ir)
+```
+
+# 3) Label checks (critical before recoding)
+
+```{r label-checks}
+purrr::walk(c("v812","v813","v505","v632","v312","v763a","v012","v106"), ~ label_summary(ir, .x))
+```
+
+# 4) Derived variables for Objective 1
+
+## 4.1 Survey weights + men listening
+
+```{r derive-manlistening}
+ir <- ir %>%
+  mutate(
+    wt = dhs_weight(v005),
+
+    v812n = as.numeric(v812),
+    v813n = as.numeric(v813),
+
+    man_listening = case_when(
+      v812n == 1 | v813n == 1 ~ 1,
+      v812n %in% c(0,2) & v813n %in% c(0,2) ~ 0,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(-v812n, -v813n)
+
+table(ir$man_listening, useNA = "ifany")
+```
+
+## 4.2 Beating justified: “any” index
+
+```{r derive-beat}
+beat_vars <- c("v744a","v744b","v744c","v744d","v744e")
+assert_vars(ir, beat_vars, "IR subset")
+
+ir <- ir %>%
+  mutate(across(all_of(beat_vars), ~ as.numeric(.x), .names = "{.col}_n")) %>%
+  mutate(
+    beat_any_justified = case_when(
+      rowSums(!is.na(across(ends_with("_n")))) == 0 ~ NA_real_,
+      rowSums(across(ends_with("_n"), ~ .x == 1), na.rm = TRUE) > 0 ~ 1,
+      TRUE ~ 0
+    )
+  ) %>%
+  select(-ends_with("_n"))
+
+table(ir$beat_any_justified, useNA = "ifany")
+```
+
+## 4.3 Outcomes (contraception + STI)
+
+```{r derive-outcomes}
+ir <- ir %>%
+  mutate(
+    v312n = as.numeric(v312),
+    any_contra = case_when(
+      is.na(v312n) ~ NA_real_,
+      v312n == 0 ~ 0,
+      v312n > 0 ~ 1
+    ),
+
+    v763an = as.numeric(v763a),
+    sti_risk_bin = case_when(
+      v763an == 8 ~ NA_real_,        # often "don't know"
+      v763an == 1 ~ 1,
+      v763an %in% c(0,2,3,4,5,6,7,9) ~ 0,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(-v312n, -v763an)
+
+table(ir$any_contra, useNA="ifany")
+table(ir$sti_risk_bin, useNA="ifany")
+```
+
+## 4.4 DV availability check (model data)
+
+This demonstrates that DV outcomes are **not available** in this model IR dataset.
+
+```{r dv-na-check}
+# Create dv_bin as NA (since DV module variables are not included in this model file)
+ir <- ir %>% mutate(dv_bin = NA_real_)
+
+# Show DV is entirely missing
+table(ir$dv_bin, useNA = "ifany")
+mean(is.na(ir$dv_bin))
+```
+
+# 5) Survey design object (Women IR)
+
+```{r survey-design}
+assert_vars(ir, c("v021","v022","wt"), "IR derived")
+
+des_ir <- survey::svydesign(
+  ids = ~v021,
+  strata = ~v022,
+  weights = ~wt,
+  data = ir,
+  nest = TRUE
+)
+
+summary(des_ir)
+```
+
+# 6) Core EDA for Objective 1 (by men listening)
+
+## 6.1 Missingness snapshot (Objective 1 variables)
+
+```{r missingness}
+eda_vars <- c("man_listening","v505","v632","beat_any_justified","any_contra","sti_risk_bin","v012","v106")
+
+miss_tbl <- ir %>%
+  summarise(across(all_of(eda_vars), ~ mean(is.na(.x)))) %>%
+  pivot_longer(everything(), names_to = "variable", values_to = "prop_missing") %>%
+  arrange(desc(prop_missing))
+
+miss_tbl
+```
+
+## 6.2 Weighted outcome prevalence by men listening
+
+```{r weighted-outcomes-by-listening}
+# Contraception (any)
+w_prop_eq(des_ir, "any_contra", 1, "man_listening")
+
+# STI risk
+w_prop_eq(des_ir, "sti_risk_bin", 1, "man_listening")
+```
+
+## 6.3 Weighted predictor summaries by men listening
+
+```{r predictor-summaries}
+# v505: mean # of other wives
+survey::svyby(~v505, ~man_listening, des_ir, survey::svymean, na.rm = TRUE)
+
+# beat_any_justified: prevalence
+w_prop_eq(des_ir, "beat_any_justified", 1, "man_listening")
+
+# v632 distribution among non-missing (unweighted, for understanding skip patterns)
+v632_tab <- ir %>%
+  filter(!is.na(man_listening)) %>%
+  mutate(v632_num = as.numeric(v632)) %>%
+  count(man_listening, v632_num, name = "n") %>%
+  group_by(man_listening) %>%
+  mutate(p_unw = n / sum(n)) %>%
+  ungroup()
+
+v632_tab
+```
+
+# 7) Plots (teaching-ready)
+
+## 7.1 Violin: `v505` by men listening
+
+```{r plot-v505}
+plot_df <- ir %>%
+  transmute(
+    man_listening = factor(man_listening, levels=c(0,1), labels=c("No","Yes")),
+    v505 = as.numeric(v505)
+  ) %>%
+  filter(!is.na(man_listening), !is.na(v505))
+
+ggplot(plot_df, aes(x = man_listening, y = v505)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width = 0.15, outlier.alpha = 0.25) +
+  labs(
+    x = "Men listening",
+    y = "Number of other wives (v505)",
+    title = "Distribution of v505 by men listening"
+  )
+```
+
+## 7.2 Bar: beating justified by men listening
+
+```{r plot-beat}
+plot_df2 <- ir %>%
+  transmute(
+    man_listening = factor(man_listening, levels=c(0,1), labels=c("No","Yes")),
+    beat_any_justified = factor(beat_any_justified, levels=c(0,1), labels=c("No","Yes"))
+  ) %>%
+  filter(!is.na(man_listening), !is.na(beat_any_justified))
+
+ggplot(plot_df2, aes(x = man_listening, fill = beat_any_justified)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    x = "Men listening",
+    y = "Proportion (unweighted)",
+    fill = "Any beating justified",
+    title = "Any beating justified by men listening"
+  )
+```
+
+# 8) Regression (Objective 1)
+
+All models below are **survey-weighted logistic regressions** with minimal covariates:
+- age (`v012`)
+- education (`v106` as factor)
+
+> Teaching note: if `man_listening==1` is sparse, interaction estimates can be unstable with wide CIs.
+
+## 8.1 Prep covariates
+
+```{r covariates}
+ir <- ir %>%
+  mutate(
+    age = as.numeric(v012),
+    educ = haven::as_factor(v106),
+    v632_f = haven::as_factor(v632)  # treat as factor to avoid incorrect binary recode
+  )
+
+des_ir <- update(des_ir, age = ir$age, educ = ir$educ, v632_f = ir$v632_f)
+```
+
+## 8.2 Model A: Main effects (no interaction)
+
+Example outcome: STI risk.
+
+```{r model-main-sti}
+fit_sti_main <- survey::svyglm(
+  sti_risk_bin ~ beat_any_justified + v505 + v632_f + age + educ,
+  design = des_ir,
+  family = quasibinomial()
+)
+
+summary(fit_sti_main)
+tidy_or(fit_sti_main)
+```
+
+## 8.3 Model B: Interaction with men listening
+
+```{r model-int-sti}
+fit_sti_int <- survey::svyglm(
+  sti_risk_bin ~ (beat_any_justified + v505 + v632_f) * man_listening + age + educ,
+  design = des_ir,
+  family = quasibinomial()
+)
+
+summary(fit_sti_int)
+tidy_or(fit_sti_int)
+```
+
+## 8.4 Repeat for contraception
+
+```{r model-contraception}
+fit_contra_main <- survey::svyglm(
+  any_contra ~ beat_any_justified + v505 + v632_f + age + educ,
+  design = des_ir,
+  family = quasibinomial()
+)
+
+fit_contra_int <- survey::svyglm(
+  any_contra ~ (beat_any_justified + v505 + v632_f) * man_listening + age + educ,
+  design = des_ir,
+  family = quasibinomial()
+)
+
+tidy_or(fit_contra_main)
+tidy_or(fit_contra_int)
+```
+
+# 9) Slide-ready summary
+
+```{r slide-summary}
+outcomes_tbl <- rbind(
+  transform(w_prop_eq(des_ir, "any_contra", 1, "man_listening"), outcome = "Any contraception"),
+  transform(w_prop_eq(des_ir, "sti_risk_bin", 1, "man_listening"), outcome = "STI risk")
+)
+
+outcomes_tbl
+```
+
+```{r sparse-check}
+table(ir$man_listening, useNA="ifany")
+
+if (sum(ir$man_listening == 1, na.rm = TRUE) < 50) {
+  message("Teaching note: man_listening==1 is sparse in this model dataset; interaction/stratified estimates may be unstable with wide CIs.")
+}
+```
+
+# Session info
+
+```{r sessioninfo}
+sessionInfo()
+```
