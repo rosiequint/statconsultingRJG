@@ -44,5 +44,13 @@ Use the View command to open your data into a viewing window. Here, you can see 
 ```{r, eval = F}
 View(dhs)
 ### dhs$v119
+#dhs$d101a
+dhs$v763a
+dhs$v312
+dhs$v812
+sum(as.numeric(is.na(dhs$v632)))
+nrow(dhs)
+dhs$v632a
+dhs$v822
 ```
 
