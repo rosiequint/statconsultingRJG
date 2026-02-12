@@ -73,3 +73,9 @@ dhs$v632a
 dhs$v822
 ```
 
+# 2) Describe Your Data  
+
+
+
+
+# 3) Model Your Data  
