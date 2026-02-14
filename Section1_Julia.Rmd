@@ -62,16 +62,14 @@ Use the View command to open your data into a viewing window. Here, you can see 
 
 ```{r, eval = F}
 View(dhs)
-### dhs$v119
-#dhs$d101a
-dhs$v763a
-dhs$v312
-dhs$v812
-sum(as.numeric(is.na(dhs$v632)))
-nrow(dhs)
-dhs$v632a
-dhs$v822
 ```
+
+Throughout your analysis, you can use the DHS [codebook manual](https://www.dhsprogram.com/pubs/pdf/DHSG4/Recode7_DHS_10Sep2018_DHSG4.pdf) to refer to each variable and its coding structure. You can also use the following code to access the labels for a desired variable. 
+
+```{r}
+dhs$v744a[[2]]
+```
+
 
 # 2) Describe Your Data  
 

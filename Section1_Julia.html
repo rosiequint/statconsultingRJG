@@ -1362,16 +1362,20 @@ working directory.</p>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>dhs <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="st">&quot;ZZIR62FL.DTA&quot;</span>)</span></code></pre></div>
 <p>Use the View command to open your data into a viewing window. Here,
 you can see labels for each variable and the first rows of data.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">View</span>(dhs)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="do">### dhs$v119</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#dhs$d101a</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>dhs<span class="sc">$</span>v763a</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>dhs<span class="sc">$</span>v312</span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>dhs<span class="sc">$</span>v812</span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">as.numeric</span>(<span class="fu">is.na</span>(dhs<span class="sc">$</span>v632)))</span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="fu">nrow</span>(dhs)</span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>dhs<span class="sc">$</span>v632a</span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>dhs<span class="sc">$</span>v822</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">View</span>(dhs)</span></code></pre></div>
+<p>Throughout your analysis, you can use this <a href="https://www.dhsprogram.com/pubs/pdf/DHSG4/Recode7_DHS_10Sep2018_DHSG4.pdf">codebook
+manual</a> to refer to each variable and their coding structure. You can
+also use the following code to access the labels for a desired
+variable.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>dhs<span class="sc">$</span>v744a[[<span class="dv">2</span>]]</span></code></pre></div>
+<pre><code>## &lt;labelled&lt;double&gt;[1]&gt;: beating justified if wife goes out without telling husband
+## [1] 1
+## 
+## Labels:
+##  value      label
+##      0         no
+##      1        yes
+##      8 don&#39;t know</code></pre>
 </div>
 <div id="describe-your-data-1" class="section level1">
 <h1>2) Describe Your Data</h1>
