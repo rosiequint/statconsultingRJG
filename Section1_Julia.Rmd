@@ -18,10 +18,9 @@ h1.title {
 
 ![](DHS.png){width=50%}   ![](clip.jpg){width=40%}
 
-
 ## Introduction 
 
-The purpose of this document is to provide step-by-step instructions and code for analyzing the [Demographic and Healthy Surveys Model Data](https://www.dhsprogram.com/data/Download-Model-Datasets.cfm), which can then be extended to analyzing specific country DHS data. DHS data is collected using population-based survey and includes a wide range of variables providing information about population health, reproductive health, child health, and more for countries around the globe. In this example, we use the 'Individual Recode' data file and provide all code in R. 
+The purpose of this document is to provide step-by-step instructions and code for analyzing the [Demographic and Healthy Surveys Model Data](https://www.dhsprogram.com/data/Download-Model-Datasets.cfm), which can then be extended to analyzing specific country DHS data. DHS data is collected using population-based survey and includes a wide range of variables providing information about population health, reproductive health, child health, and more for countries around the globe. The model dataset is de-identified, re-weighted, and imputed (where missing) data intended to educational purposes. In this example, we use the 'Individual Recode' data file and provide all code in R. 
 
 ## Research Objective
 
@@ -50,11 +49,16 @@ Begin by navigating to the [Demographic and Healthy Surveys Model Data](https://
 
 ![](Individual.png)
 
+Next, we will need to prepare our R environment. The following packages are required for this analysis. You can install them using the install.packages("package_name") function, and load them using the library() function. 
+
+```{r, message = F, warning = F}
+library(haven)
+library(dplyr)
+```
+
 Use the following code to read the data into your R environment:  
 
 ```{r}
-#install.packages("haven")
-library(haven)
 dhs <- read_dta("ZZIR62FL.DTA")
 ```
 
@@ -73,7 +77,74 @@ dhs$v744a[[2]]
 
 # 2) Describe Your Data  
 
+First, we will introduce the variables we will use in our analysis.  
+
+#### Outcomes  
+
+**1. Domestic Violence** - variable code D105A-N, D106-D108. These variables account for all instances of physical domestic violence. Here is an example of D105D, "spouse ever kicked or dragged." These are categorical variables. 
+
+```{r}
+dhs$d105d[[2]]
+table(dhs$d105d)
+```
+
+Because these domestic violence variables come from survey questions asked only to women in union/are married (V502), we will restrict our data to the subset of women who are married for the remainder of the analysis: 
+
+```{r}
+dhs <- dhs %>%
+  filter(v502 == 1)
+```
+
+**2. Contraceptive Use** - variable code V312. This categorical variable provides information on contraceptive method.  
+
+```{r}
+dhs$v312[[2]]
+table(dhs$v312)
+```
 
 
+#### Predictors  
+
+**1. Number of co-wives** - variable code V505. This continuous variable tells how many other wives a woman's husband has. The value of 98 for this variable indicates "don't know." We will remove those with a value of 98 for this variable from our analysis.
+
+```{r}
+dhs$v505[[2]]
+
+# remove those with a value of 98 for this variable from our analysis
+dhs <- dhs %>%
+  filter(v505 != 98)
+```
+
+For this continuous variable, we can use the summary command to get a sense of the distribution of this variable in our data.
+
+```{r}
+# summarize the variable after removing those with a value of 98
+summary(dhs$v505)
+```
+
+Here, we see that the mean number of other wives 0.45 and the maximum is 5.  
+
+**2. Contraception decisions** - variable code V822. This categorical variable is about a wife being justified to ask husband to use condom if he has an STI. 
+
+```{r}
+dhs$v822[[2]]
+table(dhs$v822)
+```
+
+Again, we see some responses with a value of 8, which indicates "don't know". We will remove those with a value of 8 for this variable from our analysis.  
+
+```{r}
+dhs <- dhs %>%
+  filter(v822 != 8)
+```
+
+**need to finish 3. and 4. still (julia)
+
+**3. Men endorsing statements that beating is justified** - variable codes (V744A-E)
+
+
+**4. Man listening** 
 
 # 3) Model Your Data  
+
+
