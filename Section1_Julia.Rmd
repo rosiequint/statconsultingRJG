@@ -95,6 +95,7 @@ dhs <- dhs %>%
 ```
 
 We can create a bar plot showing the response proportions for this question:
+
 ```{r}
 dhs$d105d_factor <- as_factor(dhs$d105d) # convert to factor variable to get the labels for the bar plot
 
@@ -104,7 +105,6 @@ barplot(table(dhs$d105d_factor), # create a bar plot of the domestic violence va
 
 ```
 
-
 **2. Contraceptive Use** - variable code V312. This categorical variable provides information on contraceptive method.
 
 ```{r}
@@ -113,6 +113,7 @@ table(dhs$v312)
 ```
 
 We can again make a bar plot to show the response proportions for this question:
+
 ```{r}
 dhs$v312_factor <- as_factor(dhs$v312) # convert to factor variable to get the labels for the bar plot
 
@@ -120,6 +121,12 @@ barplot(table(dhs$v312_factor), # create a bar plot of the contraceptive method 
         las = 2,
         main = "Current contraceptive method") 
 
+```
+
+We can see that the majority of women use no contraception, and among those which do, only the pill, injections, and implants seem to be popular. Therefore, we can create a binary variable indicating any contraception use.
+
+```{r}
+dhs$contraception_use <- ifelse(dhs$v312 == 0, 0, 1) # create a binary variable for any contraception use
 ```
 
 #### Predictors
@@ -166,6 +173,7 @@ dhs <- dhs %>%
 ```
 
 We can again use a bar plot to visualize the response proportions for this variable.
+
 ```{r}
 dhs$v822_factor <- as_factor(dhs$v822) # convert to factor variable to get the labels for the bar plot
 barplot(table(dhs$v822_factor), # create a bar plot of the contraception decisions variable
@@ -178,6 +186,7 @@ barplot(table(dhs$v822_factor), # create a bar plot of the contraception decisio
 **3. Men endorsing statements that beating is justified** - variable codes (V744A-E)
 
 We can plot at the proportion agreeing with each of the statements
+
 ```{r}
 vars <- c("v744a","v744b","v744c","v744d","v744e")
 
@@ -193,7 +202,8 @@ barplot(
 
 ```
 
-We can then create an indicator variable showing agreement with any of the statements:  
+We can then create an indicator variable showing agreement with any of the statements:
+
 ```{r}
 dhs <- dhs %>% 
   mutate(
@@ -202,11 +212,60 @@ dhs <- dhs %>%
 ```
 
 We can summarise the proportion for whom anybeating_justified
+
 ```{r}
 mean(dhs$anybeating_justified, na.rm = TRUE) * 100
 ```
 
-
 **4. Man listening**
+
+First, we can explore the distribution of the two variables: husband listening and other man listening.
+
+```{r}
+table(dhs$v812) # husband listening
+table(dhs$v813) # other males listening 
+```
+
+We can now create a new variable indicating whether any man was listening
+
+```{r}
+dhs$man_listening <- ifelse(dhs$v812 == 1 | dhs$v813 == 1, 1, 0)
+```
+
+### Stratified variable plots
+
+*add intro text 
+
+**Plotting belief beating justified by man listening status** 
+
+Prepare the dataset
+
+```{r}
+plot_df <- dhs %>%
+  mutate(
+    man_listening = factor(man_listening, levels=c(0,1), labels=c("No","Yes")),
+    anybeating_justified = factor(anybeating_justified, levels=c(0,1), labels=c("No","Yes"))
+  ) %>%
+  filter(!is.na(man_listening), !is.na(anybeating_justified))
+```
+
+Make the plot using ggplot
+
+```{r}
+library(ggplot2) 
+
+ggplot(plot_df, aes(x = man_listening, fill = anybeating_justified)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    x = "Men listening",
+    y = "Proportion (unweighted)",
+    fill = "Any beating justified",
+    title = "Any beating justified by men listening"
+  )
+
+```
+
+We can see that more women agreed with at least one statement that beating is justified when a man was listening compared to when no men were listening. This is an example of how we can use stratification to explore differences in the distribution of a variable across different groups. We can also use stratification to explore differences in the distribution of our outcomes across different groups, which we will see in the next section when we model our data.
 
 # 3) Model Your Data
