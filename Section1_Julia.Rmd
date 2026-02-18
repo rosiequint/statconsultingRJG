@@ -54,6 +54,7 @@ Next, we will need to prepare our R environment. The following packages are requ
 ```{r, message = F, warning = F}
 library(haven)
 library(dplyr)
+library(tidyverse)
 ```
 
 Use the following code to read the data into your R environment:
@@ -94,6 +95,9 @@ dhs <- dhs %>%
   filter(v502 == 1)
 ```
 
+Remove:
+
+
 We can create a bar plot showing the response proportions for this question:
 
 ```{r}
@@ -103,6 +107,13 @@ barplot(table(dhs$d105d_factor), # create a bar plot of the domestic violence va
         las = 2,
         main = "Spouse ever kicked or dragged") 
 
+ggplot(dhs, aes(x = d105d_factor)) +
+  geom_bar() +
+  labs(
+    x = "Response",
+    y = "Count",
+    title = "Spouse ever kicked or dragged") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 **2. Contraceptive Use** - variable code V312. This categorical variable provides information on contraceptive method.
@@ -117,9 +128,13 @@ We can again make a bar plot to show the response proportions for this question:
 ```{r}
 dhs$v312_factor <- as_factor(dhs$v312) # convert to factor variable to get the labels for the bar plot
 
-barplot(table(dhs$v312_factor), # create a bar plot of the contraceptive method variable
-        las = 2,
-        main = "Current contraceptive method") 
+ggplot(dhs, aes(x = v312_factor)) +
+  geom_bar() +
+  labs(
+    x = "Current contraceptive method",
+    y = "Count",
+    title = "Current contraceptive method") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))   #rotate x axis labels
 
 ```
 
@@ -150,12 +165,14 @@ summary(dhs$v505)
 
 Here, we see that the mean number of other wives 0.45 and the maximum is 5.
 
-We can now create an exploratory violi n plot to visualize the distribution of this variable.
+We can now create an exploratory violin plot to visualize the distribution of this variable.
 
 ```{r}
-boxplot(dhs$v505, # create a box plot of the number of co-wives variable
-        main = "Number of co-wives",
-        ylab = "Number of co-wives")
+ggplot(dhs, aes(x = "", y = v505)) +
+  geom_violin() +
+  labs(
+    y = "Number of co-wives",
+    title = "Distribution of number of co-wives")
 ```
 
 **2. Contraception decisions** - variable code V822. This categorical variable is about a wife being justified to ask husband to use condom if he has an STI.
@@ -176,9 +193,14 @@ We can again use a bar plot to visualize the response proportions for this varia
 
 ```{r}
 dhs$v822_factor <- as_factor(dhs$v822) # convert to factor variable to get the labels for the bar plot
-barplot(table(dhs$v822_factor), # create a bar plot of the contraception decisions variable
-        las = 2,
-        main = "Wife justified to ask husband to use condom if he has an STI")
+
+ggplot(dhs, aes(x = v822_factor)) +
+  geom_bar() +
+  labs(
+    x = "Response",
+    y = "Count",
+    title = "Wife justified to ask husband to use condom if he has an STI"
+  )
 ```
 
 \*\*need to finish 3. and 4. still (julia)
@@ -189,17 +211,26 @@ We can plot at the proportion agreeing with each of the statements
 
 ```{r}
 vars <- c("v744a","v744b","v744c","v744d","v744e")
+ # convert to factor variables to get the labels for the bar plot
+
+# question labels
+question_labels <- sapply(dhs[vars], function(x) attr(x, "label"))
+
+# remove 'beating justified' from the start of the label
+question_labels <- gsub("beating justified if", "", question_labels)
 
 # percent agreeing (value == 1)
 perc_agree <- sapply(dhs[vars], function(x) mean(x == 1, na.rm = TRUE) * 100)
 
 barplot(
-  perc_agree,
-  ylab = "Percent agreeing",
-  main = "Agreement with statements",
-  ylim = c(0, 100)
+  perc_agree, 
+  names.arg = question_labels, # This puts the question text on the axis
+  ylab = "Percent agreeing", 
+  main = "Agreement with statements: 'beating justified if...'", 
+  ylim = c(0, 100),
+  las = 1,                     # Use las=2 if labels are long and need to be vertical
+  cex.names = 0.45          # Shrinks label font size if they overlap
 )
-
 ```
 
 We can then create an indicator variable showing agreement with any of the statements:
@@ -238,7 +269,9 @@ dhs$man_listening <- ifelse(dhs$v812 == 1 | dhs$v813 == 1, 1, 0)
 
 **Plotting belief beating justified by man listening status** 
 
-Prepare the dataset
+We might hypothesize that women might change their answers to some of these questions depending on whether a man was present, perhaps to avoid conflict or to conform to social norms. We can therefore use stratified plots to visually assess whether the proportion of women saying beating is justified would be different depending on if a man was listening or not. 
+
+We can first prepare the dataset by mutating the variables to be factors with labels and filtering out any missing data for these variables.
 
 ```{r}
 plot_df <- dhs %>%
@@ -249,7 +282,7 @@ plot_df <- dhs %>%
   filter(!is.na(man_listening), !is.na(anybeating_justified))
 ```
 
-Make the plot using ggplot
+We can then make the plot using ggplot
 
 ```{r}
 library(ggplot2) 
