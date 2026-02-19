@@ -95,17 +95,10 @@ dhs <- dhs %>%
   filter(v502 == 1)
 ```
 
-Remove:
-
-
 We can create a bar plot showing the response proportions for this question:
 
 ```{r}
 dhs$d105d_factor <- as_factor(dhs$d105d) # convert to factor variable to get the labels for the bar plot
-
-barplot(table(dhs$d105d_factor), # create a bar plot of the domestic violence variable
-        las = 2,
-        main = "Spouse ever kicked or dragged") 
 
 ggplot(dhs, aes(x = d105d_factor)) +
   geom_bar() +
@@ -116,6 +109,34 @@ ggplot(dhs, aes(x = d105d_factor)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+Combine all domestic violence variables to create a binary variable indicating any domestic violence:
+```{r}
+# restrict analysis to people who answered at least one of the domestic violence questions (i.e. those who have a value of 0 or 1 for at least one of the questions)
+dhs <- dhs %>%
+  filter(!is.na(d105a) | !is.na(d105b) | !is.na(d105c) | !is.na(d105d) | !is.na(d105e) | !is.na(d105f) | 
+           !is.na(d105g) | !is.na(d105h) | !is.na(d105i) | !is.na(d105j) | !is.na(d105k) |
+           !is.na(d105l) | !is.na(d105m) | !is.na(d105n) | !is.na(d106) | !is.na(d107) |
+           !is.na(d108))
+
+dhs$any_domestic_violence <- case_when(
+  dhs$d105a > 0 | dhs$d105b > 0 | dhs$d105c > 0 | dhs$d105d > 0 | dhs$d105e > 0 | dhs$d105f > 0 | 
+    dhs$d105g > 0 | dhs$d105h > 0 | dhs$d105i > 0 | dhs$d105j > 0 | dhs$d105k > 0 |
+    dhs$d105l > 0 | dhs$d105m > 0 | dhs$d105n > 0 | dhs$d106 > 0 | dhs$d107 > 0 |
+    dhs$d108 > 0 ~ 1,
+  dhs$d105a == 0 & dhs$d105b == 0 & dhs$d105c == 0 & dhs$d105d == 0 & dhs$d105e == 0 & dhs$d105f == 0 & 
+    dhs$d105g == 0 & dhs$d105h == 0 & dhs$d105i == 0 & dhs$d105j == 0 & dhs$d105k == 0 &
+    dhs$d105l == 0 & dhs$d105m == 0 & dhs$d105n == 0 & dhs$d106 == 0 & dhs$d107 == 0 &
+    dhs$d108 == 0 ~ 0,
+  TRUE ~ NA_real_
+)
+# if any of the answers are 0 = never, set to zero. otherwise set to 1 (domestic violence present)
+```
+
+Now we can print a table showing what proportion of women experienced any domestic violence according to this variable:
+```{r}
+table(dhs$any_domestic_violence)
+```
+
 **2. Contraceptive Use** - variable code V312. This categorical variable provides information on contraceptive method.
 
 ```{r}
@@ -123,26 +144,39 @@ dhs$v312[[2]]
 table(dhs$v312)
 ```
 
-We can again make a bar plot to show the response proportions for this question:
+We can also make this table with percentages for better interpretability:
+```{r}
+# create table with percentages
+table(dhs$v312) %>%
+  prop.table() %>%
+  { . * 100 } %>%
+  round(digits = 2)
+```
+
+To explore what proportion of women use any contraception, we can create a new binary variable indicating any contraception use:
+```{r}
+dhs$contraception_use <- case_when(
+  dhs$v312 > 0 ~ 1,
+  dhs$v312 == 0 ~ 0
+  ) # create a binary variable for any contraception use
+```
+
+We can again make a bar plot to show the most popular cotnraception choices by excluding those who didn't use:
 
 ```{r}
 dhs$v312_factor <- as_factor(dhs$v312) # convert to factor variable to get the labels for the bar plot
 
-ggplot(dhs, aes(x = v312_factor)) +
+ggplot(dhs %>% filter(contraception_use == 1),
+       aes(x = v312_factor)) +
   geom_bar() +
   labs(
     x = "Current contraceptive method",
     y = "Count",
     title = "Current contraceptive method") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))   #rotate x axis labels
-
 ```
 
-We can see that the majority of women use no contraception, and among those which do, only the pill, injections, and implants seem to be popular. Therefore, we can create a binary variable indicating any contraception use.
-
-```{r}
-dhs$contraception_use <- ifelse(dhs$v312 == 0, 0, 1) # create a binary variable for any contraception use
-```
+We can see that the majority of women use no contraception, and among those which do, only the pill, injections, and implants seem to be popular. Therefore, we can 
 
 #### Predictors
 
@@ -203,8 +237,6 @@ ggplot(dhs, aes(x = v822_factor)) +
   )
 ```
 
-\*\*need to finish 3. and 4. still (julia)
-
 **3. Men endorsing statements that beating is justified** - variable codes (V744A-E)
 
 We can plot at the proportion agreeing with each of the statements
@@ -229,7 +261,8 @@ barplot(
   main = "Agreement with statements: 'beating justified if...'", 
   ylim = c(0, 100),
   las = 1,                     # Use las=2 if labels are long and need to be vertical
-  cex.names = 0.45          # Shrinks label font size if they overlap
+  cex.names = 0.6,          # Shrinks label font size if they overlap
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 )
 ```
 
@@ -240,12 +273,32 @@ dhs <- dhs %>%
   mutate(
     anybeating_justified = ifelse(v744a == 1 | v744b == 1 | v744c == 1 | v744d == 1 | v744e == 1, 1, 0)
   )
+
+# make score 
+dhs <- dhs %>%
+  mutate(
+    # Each statement evaluates to 1 if true and 0 if false, then sums them up
+    beating_justified_score = (v744a == 1) + (v744b == 1) + (v744c == 1) + (v744d == 1) + (v744e == 1)
+  )
+
 ```
 
-We can summarise the proportion for whom anybeating_justified
+We can summarise the proportion for whom anybeating_justified, and the proportion with each score:
 
 ```{r}
 mean(dhs$anybeating_justified, na.rm = TRUE) * 100
+table(dhs$beating_justified_score)
+```
+
+We can also plot the score:
+```{r}
+ggplot(dhs, aes(x = beating_justified_score)) +
+  geom_bar() +
+  labs(
+    x = "Number of statements agreed with",
+    y = "Count",
+    title = "Distribution of beating justified score"
+  )
 ```
 
 **4. Man listening**
@@ -260,7 +313,11 @@ table(dhs$v813) # other males listening
 We can now create a new variable indicating whether any man was listening
 
 ```{r}
-dhs$man_listening <- ifelse(dhs$v812 == 1 | dhs$v813 == 1, 1, 0)
+dhs$man_listening <- case_when(
+  dhs$v812 == 1 | dhs$v813 == 1 ~ 1,
+  dhs$v812 == 0 & dhs$v813 == 0 ~ 0,
+  TRUE ~ NA_real_
+  )
 ```
 
 ### Stratified variable plots
