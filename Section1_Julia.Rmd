@@ -49,7 +49,7 @@ Begin by navigating to the [Demographic and Healthy Surveys Model Data](https://
 
 ![](Individual.png)
 
-Next, we will need to prepare our R environment. The following packages are required for this analysis. You can install them using the install.packages("package_name") function, and load them using the library() function.
+Next, we will prepare our R environment. The following packages are required for this analysis. You can install them using the install.packages("package_name") function, and load them using the library() function.
 
 ```{r, message = F, warning = F}
 library(haven)
@@ -95,7 +95,7 @@ dhs <- dhs %>%
   filter(v502 == 1)
 ```
 
-We can create a bar plot showing the response proportions for this question:
+We can create a bar plot showing the response distribution for this question:
 
 ```{r}
 dhs$d105d_factor <- as_factor(dhs$d105d) # convert to factor variable to get the labels for the bar plot
@@ -109,7 +109,8 @@ ggplot(dhs, aes(x = d105d_factor)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Combine all domestic violence variables to create a binary variable indicating any domestic violence:
+Since we have several variables representing domestic violence, we can combine them to create a single binary variable indicating any physical domestic violence:  
+
 ```{r}
 # restrict analysis to people who answered at least one of the domestic violence questions (i.e. those who have a value of 0 or 1 for at least one of the questions)
 dhs <- dhs %>%
@@ -146,7 +147,6 @@ table(dhs$v312)
 
 We can also make this table with percentages for better interpretability:
 ```{r}
-# create table with percentages
 table(dhs$v312) %>%
   prop.table() %>%
   { . * 100 } %>%
@@ -158,22 +158,22 @@ To explore what proportion of women use any contraception, we can create a new b
 dhs$contraception_use <- case_when(
   dhs$v312 > 0 ~ 1,
   dhs$v312 == 0 ~ 0
-  ) # create a binary variable for any contraception use
+  ) 
 ```
 
-We can again make a bar plot to show the most popular contraception choices by excluding those who didn't use:
+We can again make a bar plot to show the most common contraception choices by excluding those who didn't use:
 
 ```{r}
 dhs$v312_factor <- as_factor(dhs$v312) # convert to factor variable to get the labels for the bar plot
 
 ggplot(dhs %>% filter(contraception_use == 1),
-       aes(x = v312_factor)) +
+       aes(x = fct_infreq(v312_factor))) +
   geom_bar() +
   labs(
     x = "Current contraceptive method",
     y = "Count",
     title = "Current contraceptive method") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))   #rotate x axis labels
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) #rotate x axis labels
 ```
 
 We can see that the majority of women use no contraception, and among those which do, only the pill, injections, and implants seem to be popular. Therefore, we can 
