@@ -37,7 +37,7 @@ Learn how to read in data to your R environment and create a subset according to
 
 ### 2) Describe Your Data
 
-Learn how to summarize and visualize your data. Learn how to use sampling weights and stratification to present your summaries. Learn how to create new variables from existing ones.
+Learn how to summarize and visualize your data. Learn how to use sampling weights and stratification to present your summaries. Learn how to create new variables from existing ones and merge with other datasets. 
 
 ### 3) Model Your Data
 
@@ -241,7 +241,9 @@ ggplot(dhs, aes(x = v822_factor)) +
 
 We can plot at the proportion agreeing with each of the statements
 
-```{r}
+Julia note 2/23: this next chunk is giving an error so I set eval = F for knitting
+
+```{r, eval = FALSE}
 vars <- c("v744a","v744b","v744c","v744d","v744e")
  # convert to factor variables to get the labels for the bar plot
 
