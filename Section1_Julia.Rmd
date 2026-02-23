@@ -358,6 +358,16 @@ ggplot(plot_df, aes(x = man_listening, fill = anybeating_justified)) +
 
 ```
 
-We can see that more women agreed with at least one statement that beating is justified when a man was listening compared to when no men were listening. This is an example of how we can use stratification to explore differences in the distribution of a variable across different groups. We can also use stratification to explore differences in the distribution of our outcomes across different groups, which we will see in the next section when we model our data.
+We can see that more women agreed with at least one statement that beating is justified when a man was listening compared to when no men were listening. This is an example of how we can use stratification to explore differences in the distribution of a variable across different groups. We can also use stratification to explore differences in the distribution of our outcomes across different groups, which we will see in the next section when we model our data.  
+
+
+### Merging with Other Datasets  
+
+Sometimes, you may want to include a variable in your analysis that comes from a different dataset. Often, this is a population or region level variable that you want to merge with your individual level data. Here, we will show how to merge variables from the 'Geospatial Covariates" dataset that is part of the DHS Model Data. Specifically, we will merge the population density variable and travel time to high-density urban center variable. 
+
+Data dictionary here:
+Download here:
+
+When merging, it is important to identify the key variable that is present in both datasets that you can use to merge. In this case, we will use the variable "v001", which is the cluster number present in both datasets.
 
 # 3) Model Your Data
