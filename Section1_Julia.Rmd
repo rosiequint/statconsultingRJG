@@ -1,7 +1,7 @@
 ---
 title: "DHS Model Data Guide"
 date: "2026-02-04"
-author: "Julia Martin"
+author: "Julia Martin, Rosie Quint, Guan Gui"
 output:
   rmdformats::readthedown
 ---
@@ -79,7 +79,7 @@ dhs$v744a[[2]]
 
 First, we will introduce the variables we will use in our analysis.
 
-#### Outcomes
+## Outcomes
 
 **1. Domestic Violence** - variable code D105A-N, D106-D108. These variables account for all instances of physical domestic violence. Here is an example of D105D, "spouse ever kicked or dragged." These are categorical variables.
 
@@ -178,7 +178,7 @@ ggplot(dhs %>% filter(contraception_use == 1),
 
 We can see that the majority of women use no contraception, and among those which do, only the pill, injections, and implants seem to be popular. Therefore, we can 
 
-#### Predictors
+## Predictors
 
 **1. Number of co-wives** - variable code V505. This continuous variable tells how many other wives a woman's husband has. The value of 98 for this variable indicates "don't know." We will remove those with a value of 98 for this variable from our analysis.
 
@@ -197,7 +197,9 @@ For this continuous variable, we can use the summary command to get a sense of t
 summary(dhs$v505)
 ```
 
-Here, we see that the mean number of other wives 0.45 and the maximum is 5.
+Here, we see that the mean number of other wives 0.38 and the maximum is 5.
+
+histogram instead?
 
 We can now create an exploratory violin plot to visualize the distribution of this variable.
 
@@ -237,11 +239,23 @@ ggplot(dhs, aes(x = v822_factor)) +
   )
 ```
 
-**3. Men endorsing statements that beating is justified** - variable codes (V744A-E)
+**3. Men endorsing statements that beating is justified** - variable codes (V744A-E). These binary variables indicate whether or not a woman believes her husband is justified in hitting her under certain circumstances, for example, when she goes out without telling him. 
 
-We can plot at the proportion agreeing with each of the statements
+```{r}
+dhs$v744a[[2]]
+```
 
-Julia note 2/23: this next chunk is giving an error so I set eval = F for knitting
+Since we will be combining these variables into a single variable, we first need to remove any instances where the response was "don't know":
+
+```{r}
+# remove if any of 744a-e are missing
+dhs <- dhs %>%
+  filter(v744a != 8 & v744b != 8 & v744c != 8 & v744d != 8 & v744e != 8)
+```
+
+We can plot the proportion agreeing with each of the statements. 
+
+**Julia note 2/23: this next chunk is giving an error so I set eval = F for knitting**
 
 ```{r, eval = FALSE}
 vars <- c("v744a","v744b","v744c","v744d","v744e")
@@ -285,7 +299,7 @@ dhs <- dhs %>%
 
 ```
 
-We can summarise the proportion for whom anybeating_justified, and the proportion with each score:
+We can summarise the percentage for whom anybeating_justified, and the proportion with each score:
 
 ```{r}
 mean(dhs$anybeating_justified, na.rm = TRUE) * 100
@@ -297,13 +311,17 @@ We can also plot the score:
 ggplot(dhs, aes(x = beating_justified_score)) +
   geom_bar() +
   labs(
-    x = "Number of statements agreed with",
+    x = "Score (Number of statements agreed with)",
     y = "Count",
-    title = "Distribution of beating justified score"
-  )
+    title = "Distribution of Beating Justified Score"
+  ) + scale_x_continuous(breaks = 0:5)
 ```
 
-**4. Man listening**
+**4. Man present and/or listening during interview** - variable codes (V812 & V813). This categorical variable asks the survey respondent if their husband (V812) or another man (V813) is either not present, present but not listening, or present and listening during the interview.  
+
+```{r}
+dhs$v812[[2]]
+```
 
 First, we can explore the distribution of the two variables: husband listening and other man listening.
 
@@ -312,7 +330,7 @@ table(dhs$v812) # husband listening
 table(dhs$v813) # other males listening 
 ```
 
-We can now create a new variable indicating whether any man was listening
+We can now create a new variable indicating whether *any man* was listening
 
 ```{r}
 dhs$man_listening <- case_when(
@@ -322,13 +340,13 @@ dhs$man_listening <- case_when(
   )
 ```
 
-### Stratified variable plots
+## Stratified Variable Plots
 
-*add intro text 
+In this section, we will demonstrate how to visualize data from two variables in one plot. This is useful for exploring whether the distribution of one variable differs across different groups defined by another variable. This is also important for understanding effect modification when we get to modeling our data in the next section 
 
-**Plotting belief beating justified by man listening status** 
+**Plotting Belief that Beating is Justified by Man Listening Status** 
 
-We might hypothesize that women might change their answers to some of these questions depending on whether a man was present, perhaps to avoid conflict or to conform to social norms. We can therefore use stratified plots to visually assess whether the proportion of women saying beating is justified would be different depending on if a man was listening or not. 
+We might hypothesize that women change their answers to questions about whether or not beating is justified depending on whether a man was present, perhaps to avoid conflict or to conform to social norms. We can therefore use stratified plots to visually assess whether the proportion of women saying beating is justified would be different depending on if a man was listening or not. 
 
 We can first prepare the dataset by mutating the variables to be factors with labels and filtering out any missing data for these variables.
 
@@ -355,15 +373,14 @@ ggplot(plot_df, aes(x = man_listening, fill = anybeating_justified)) +
     fill = "Any beating justified",
     title = "Any beating justified by men listening"
   )
-
 ```
 
 We can see that more women agreed with at least one statement that beating is justified when a man was listening compared to when no men were listening. This is an example of how we can use stratification to explore differences in the distribution of a variable across different groups. We can also use stratification to explore differences in the distribution of our outcomes across different groups, which we will see in the next section when we model our data.  
 
 
-### Merging with Other Datasets  
+## Merging with Other Datasets  
 
-Sometimes, you may want to include a variable in your analysis that comes from a different dataset. Often, this is a population or region level variable that you want to merge with your individual level data. Here, we will show how to merge variables from the 'Geospatial Covariates" dataset that is part of the DHS Model Data. Specifically, we will merge the population density variable and travel time to high-density urban center variable. 
+Sometimes, you may want to include a variable in your analysis that comes from a different dataset. Often, this is a population or region level variable that you want to merge with your individual level data. Here, we will show how to merge variables from the 'Geospatial Covariates' dataset that is part of the DHS Model Data. Specifically, we will merge the population density variable. 
 
 First, we need to download the additional dataset and read it in to our R environment. Again, navigate to the [Demographic and Healthy Surveys Model Data](https://www.dhsprogram.com/data/Download-Model-Datasets.cfm) page and download the 'Geospatial Covariates' zip file shown below (ZZGC61FL.ZIP). Unzip the file and save the .csv file (ZZGC61FL.csv) to your working directory. You may also want to save the pdf file in this Zip file which includes a data dictionary.  
 
@@ -377,11 +394,35 @@ geo <- read.csv("ZZGC61FL.csv")
 
 When merging, it is important to identify the key variable that is present in both datasets that you can use to merge. In this case, we will merge by cluster, which is present in both datasets. In DHS data, clusters are the primary sampling unit (PSU) and typically represent a group of 20-30 households on the same street or in the same village. Each cluster has a unique identifier which will allow us to merge based on this variable.  
 
-Note what the cluster variable is named in each dataset. In the individual recode dataset, the cluster variable is "v001". In the geospatial covariates dataset, the cluster variable is "DHSCLUST". The code below will merge the two datasets and save the new dataset as 'merged_data'. We will specify that we only want to keep the population density and travel time variables from the new dataset so we don't add in unnecessary variables to our working environment.  
+Note what the cluster variable is named in each dataset. In the individual recode dataset, the cluster variable is "v001". In the geospatial covariates dataset, the cluster variable is "DHSCLUST". The code below will merge the two datasets and save the new dataset as 'merged_data'. We will specify that we only want to keep the population density variable from the new dataset so we don't add in unnecessary variables to our working environment.  
 
 ```{r}
 merged_data <- dhs %>%
-  left_join(geo %>% select(DHSCLUST, UN_Population_Density_2010, Travel_Times), by = c("v001" = "DHSCLUST"))
+  left_join(geo %>% select(DHSCLUST, UN_Population_Density_2010), by = c("v001" = "DHSCLUST"))
+```
+
+Now we can explore the merged data. This table shows the clusters with 10 highest population densities (measured in number of people per square kilometer). 
+
+```{r}
+merged_data %>%
+  select(v001, UN_Population_Density_2010) %>%
+  group_by(v001) %>%
+  summarise(pop_density = mean(UN_Population_Density_2010, na.rm = TRUE)) %>%
+  arrange(desc(pop_density)) %>%
+  head(10)
+```
+
+Since there are over 200 clusters, creating a plot of population density by cluster may not be very informative, but we can create a histogram to visualize the distribution of population density across clusters. 
+
+```{r, warning=F}
+ggplot(merged_data, aes(x = UN_Population_Density_2010)) +
+  geom_histogram(binwidth = 100) +
+  labs(
+    x = "Population Density (people per sq km)",
+    y = "Count of Clusters",
+    title = "Distribution of Population Density across Clusters"
+  ) +
+    ylim(0, 120)
 ```
 
 # 3) Model Your Data
