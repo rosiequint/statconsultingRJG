@@ -161,7 +161,7 @@ dhs$contraception_use <- case_when(
   ) # create a binary variable for any contraception use
 ```
 
-We can again make a bar plot to show the most popular cotnraception choices by excluding those who didn't use:
+We can again make a bar plot to show the most popular contraception choices by excluding those who didn't use:
 
 ```{r}
 dhs$v312_factor <- as_factor(dhs$v312) # convert to factor variable to get the labels for the bar plot
@@ -365,9 +365,23 @@ We can see that more women agreed with at least one statement that beating is ju
 
 Sometimes, you may want to include a variable in your analysis that comes from a different dataset. Often, this is a population or region level variable that you want to merge with your individual level data. Here, we will show how to merge variables from the 'Geospatial Covariates" dataset that is part of the DHS Model Data. Specifically, we will merge the population density variable and travel time to high-density urban center variable. 
 
-Data dictionary here:
-Download here:
+First, we need to download the additional dataset and read it in to our R environment. Again, navigate to the [Demographic and Healthy Surveys Model Data](https://www.dhsprogram.com/data/Download-Model-Datasets.cfm) page and download the 'Geospatial Covariates' zip file shown below (ZZGC61FL.ZIP). Unzip the file and save the .csv file (ZZGC61FL.csv) to your working directory. You may also want to save the pdf file in this Zip file which includes a data dictionary.  
 
-When merging, it is important to identify the key variable that is present in both datasets that you can use to merge. In this case, we will use the variable "v001", which is the cluster number present in both datasets.
+![](geospatial.png)
+
+Here, we will read in the .csv and save it in our environment as geo.
+
+```{r}
+geo <- read.csv("ZZGC61FL.csv")
+```
+
+When merging, it is important to identify the key variable that is present in both datasets that you can use to merge. In this case, we will merge by cluster, which is present in both datasets. In DHS data, clusters are the primary sampling unit (PSU) and typically represent a group of 20-30 households on the same street or in the same village. Each cluster has a unique identifier which will allow us to merge based on this variable.  
+
+Note what the cluster variable is named in each dataset. In the individual recode dataset, the cluster variable is "v001". In the geospatial covariates dataset, the cluster variable is "DHSCLUST". The code below will merge the two datasets and save the new dataset as 'merged_data'. We will specify that we only want to keep the population density and travel time variables from the new dataset so we don't add in unnecessary variables to our working environment.  
+
+```{r}
+merged_data <- dhs %>%
+  left_join(geo %>% select(DHSCLUST, UN_Population_Density_2010, Travel_Times), by = c("v001" = "DHSCLUST"))
+```
 
 # 3) Model Your Data
