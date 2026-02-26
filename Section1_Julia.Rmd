@@ -214,10 +214,11 @@ histogram instead?
 We can now create an exploratory violin plot to visualize the distribution of this variable.
 
 ```{r}
-ggplot(dhs, aes(x = "", y = v505)) +
-  geom_violin() +
+ggplot(dhs, aes(x = v505)) +
+  geom_histogram() +
   labs(
-    y = "Number of co-wives",
+    x = "Number of co-wives",
+    y = "Frequency",
     title = "Distribution of number of co-wives")
 ```
 
@@ -249,7 +250,7 @@ ggplot(dhs, aes(x = v822_factor)) +
   )
 ```
 
-**3. Men endorsing statements that beating is justified** - variable codes (V744A-E). These binary variables indicate whether or not a woman believes her husband is justified in hitting her under certain circumstances, for example, when she goes out without telling him. 
+**3. Women endorsing statements that beating is justified** - variable codes (V744A-E). These binary variables indicate whether or not a woman believes her husband is justified in hitting her under certain circumstances, for example, when she goes out without telling him. 
 
 ```{r}
 dhs$v744a[[2]]
@@ -278,53 +279,67 @@ question_labels <- sapply(dhs[vars], function(x) attr(x, "label"))
 question_labels <- gsub("beating justified if", "", question_labels)
 
 # percent agreeing (value == 1)
-perc_agree <- sapply(dhs[vars], function(x) mean(x == 1, na.rm = TRUE) * 100)
+perc_agree <- sapply(dhs[vars], function(x) {
+  mean(x == 1) * 100
+})
 
-barplot(
-  perc_agree, 
-  names.arg = question_labels, # This puts the question text on the axis
-  ylab = "Percent agreeing", 
-  main = "Agreement with statements: 'beating justified if...'", 
-  ylim = c(0, 100),
-  las = 1,                     # Use las=2 if labels are long and need to be vertical
-  cex.names = 0.6,          # Shrinks label font size if they overlap
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# prepare a data frame for plotting
+plot_data <- data.frame(
+  statement = question_labels,
+  percent_agree = perc_agree
 )
+
+ggplot(plot_data, aes(x = statement, y = percent_agree)) +
+  geom_col() +
+  labs(
+    x = "Statement",
+    y = "Percent agreeing",
+    title = "Percent agreeing that beating is justified"
+  ) +
+  ylim(0, 100) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 We can then create an indicator variable showing agreement with any of the statements:
 
 ```{r}
-dhs <- dhs %>% 
+dhs <- dhs %>%
   mutate(
-    anybeating_justified = ifelse(v744a == 1 | v744b == 1 | v744c == 1 | v744d == 1 | v744e == 1, 1, 0)
+    anybeating_justified = if_else(
+      if_any(all_of(vars), ~ . == 1),
+      1, 0
+    )
   )
 
 # make score 
 dhs <- dhs %>%
   mutate(
-    # Each statement evaluates to 1 if true and 0 if false, then sums them up
-    beating_justified_score = (v744a == 1) + (v744b == 1) + (v744c == 1) + (v744d == 1) + (v744e == 1)
+    beating_justified_score = 
+      (v744a == 1) +
+      (v744b == 1) +
+      (v744c == 1) +
+      (v744d == 1) +
+      (v744e == 1)
   )
-
 ```
 
 We can summarise the percentage for whom anybeating_justified, and the proportion with each score:
 
 ```{r}
-mean(dhs$anybeating_justified, na.rm = TRUE) * 100
-table(dhs$beating_justified_score)
+mean(dhs$anybeating_justified) * 100
+round(prop.table(table(dhs$beating_justified_score)), digits = 2)
 ```
 
 We can also plot the score:
 ```{r}
 ggplot(dhs, aes(x = beating_justified_score)) +
   geom_bar() +
+  scale_x_continuous(breaks = 0:5) +
   labs(
     x = "Score (Number of statements agreed with)",
     y = "Count",
     title = "Distribution of Beating Justified Score"
-  ) + scale_x_continuous(breaks = 0:5)
+  )
 ```
 
 **4. Man present and/or listening during interview** - variable codes (V812 & V813). This categorical variable asks the survey respondent if their husband (V812) or another man (V813) is either not present, present but not listening, or present and listening during the interview.  
