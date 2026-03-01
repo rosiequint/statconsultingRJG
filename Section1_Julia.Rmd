@@ -53,18 +53,19 @@ Next, we will prepare our R environment. The following packages are required for
 
 ```{r, message = F, warning = F}
 # Install packages once if needed:
-# install.packages(c("haven","dplyr","tidyverse","ggplot2","scales","survey","broom","janitor"))
+# install.packages(c("haven","dplyr","tidyverse","ggplot2","scales","survey","broom","janitor", "srvyr")))
 
 library(haven)     # read DHS .DTA files
 library(dplyr)     # data wrangling
 library(tidyverse) # ggplot2 + tidy tools
 library(ggplot2)   # plotting
 library(scales)    # percent labels
-library(survey)    # survey-weighted analysis
+library(srvyr)    # survey-weighted analysis
 library(broom)     # tidy model output
 library(janitor)   # quick frequency tables
 library(stringr)   # pattern matching for variable names
 library(forcats)   # factor ordering
+library(knitr)     # presenting tables
 ```
 
 Use the following code to read the data into your R environment:
@@ -84,6 +85,13 @@ Throughout your analysis, you can use the DHS [codebook manual](https://www.dhsp
 ```{r}
 dhs$v744a[[2]]
 ```
+
+testing survey package
+```{r}
+#dhs <- dhs %>%
+ #  as_survey_design(strata = v001, weights = v005)
+```
+
 
 # 2) Describe Your Data
 
@@ -190,7 +198,7 @@ We can see that the majority of women use no contraception, and among those whic
 
 ## Predictors
 
-**1. Number of co-wives** - variable code V505. This continuous variable tells how many other wives a woman's husband has. The value of 98 for this variable indicates "don't know." We will remove those with a value of 98 for this variable from our analysis.
+**1. Number of co-wives** - variable code V505. This continuous variable tells us how many other wives a woman's husband has. The value of 98 for this variable indicates "don't know." We will remove those with a value of 98 for this variable from our analysis.
 
 ```{r}
 dhs$v505[[2]]
@@ -213,23 +221,24 @@ histogram instead?
 
 We can now create an exploratory violin plot to visualize the distribution of this variable.
 
-```{r}
+```{r, warning = F}
 ggplot(dhs, aes(x = v505)) +
-  geom_histogram() +
+  geom_histogram(binwidth = 1) + 
   labs(
     x = "Number of co-wives",
     y = "Frequency",
-    title = "Distribution of number of co-wives")
+    title = "Distribution of number of co-wives") +
+  scale_x_continuous(breaks = 0:5) 
 ```
 
-**2. Contraception decisions** - variable code V822. This categorical variable is about a wife being justified to ask husband to use condom if he has an STI.
+**2. Contraception decisions** - variable code V822. This categorical variable provides data on wives feeling justified to ask their husbands to use condoms if they have an STI.
 
 ```{r}
 dhs$v822[[2]]
 table(dhs$v822)
 ```
 
-Again, we see some responses with a value of 8, which indicates "don't know". We will remove those with a value of 8 for this variable from our analysis.
+Again, we see some responses with a value of 8, which indicates "don't know". We will remove those with a value of 8 from our analysis.
 
 ```{r}
 dhs <- dhs %>%
@@ -266,9 +275,7 @@ dhs <- dhs %>%
 
 We can plot the proportion agreeing with each of the statements. 
 
-**Julia note 2/23: this next chunk is giving an error so I set eval = F for knitting**
-
-```{r, eval = FALSE}
+```{r, eval = T}
 vars <- c("v744a","v744b","v744c","v744d","v744e")
  # convert to factor variables to get the labels for the bar plot
 
@@ -300,7 +307,7 @@ ggplot(plot_data, aes(x = statement, y = percent_agree)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-We can then create an indicator variable showing agreement with any of the statements:
+We can then create an indicator variable showing agreement with any of the statements and create a combined score that indicates how many of the statements a woman agrees with. 
 
 ```{r}
 dhs <- dhs %>%
@@ -323,7 +330,7 @@ dhs <- dhs %>%
   )
 ```
 
-We can summarise the percentage for whom anybeating_justified, and the proportion with each score:
+We can summarise the percentage for whom any beating is justified and the proportion with each score:
 
 ```{r}
 mean(dhs$anybeating_justified) * 100
@@ -450,6 +457,15 @@ ggplot(merged_data, aes(x = UN_Population_Density_2010)) +
     ylim(0, 120)
 ```
 
+The advantage of merging datasets is that we can now directly tabulate or plot variables together from each of the datasets. Here, we create a table to show a potential relationship between number of co-wives and population density, since we may hypothesize that population density is related to the prevalence of polygamy. We see that population density seems to decrease as the number of co-wives increases, but we must be cautious to draw conclusions given that there are much fewer observations with 3+ co-wives. 
+
+```{r, warning = F}
+kable(merged_data %>%
+  group_by(v505) %>%
+  summarise(avg_pop_density = mean(UN_Population_Density_2010, na.rm = TRUE),
+            count = n()) %>%
+  arrange(v505), col.names = c("Number of Co-Wives", "Average Population Density", "Count"))
+```
 
 
 # 3) Model Your Data
