@@ -129,11 +129,11 @@ dhs_surv <- subset(dhs_surv, v502 == 1)
 
 Now we can create a weighted table showing the response distribution for this question:
 
-```{r}
-svytable(~d105d, design = dhs_surv) %>%
+```{r, warning = F}
+kable(svytable(~d105d, design = dhs_surv) %>%
   prop.table() %>%
   { . * 100 } %>%
-  round(digits = 2)
+  round(digits = 2), col.names = c("Spouse ever kicked or dragged", "Percent"))
 ```
 
 We can also present this information in a plot. 
@@ -245,11 +245,11 @@ dhs$v312[[2]]
 
 Again, we can make this table with percentages to show the distribution of contraceptive use:  
 
-```{r}
-svytable(~v312, design = dhs_surv) %>%
+```{r, warning = F}
+kable(svytable(~v312, design = dhs_surv) %>%
   prop.table() %>%
   { . * 100 } %>%
-  round(digits = 2)
+  round(digits = 2), col.names = c("Current contraceptive method", "Percent"))
 ```
 
 To explore what proportion of women use any contraception, we can create a new binary variable indicating any contraception use:
@@ -312,20 +312,28 @@ dhs_surv <- dhs_surv %>%
   filter(v505 != 98)
 ```
 
+```{r, echo = F}
+dhs <- dhs %>%
+  filter(v505 != 98)
+```
+
+
 For this continuous variable, we can use the summary command to get a sense of the distribution of this variable in our data.
 
-```{r}
+```{r, warning = F}
 summary(dhs_surv$variables$v505)
-
-svytable(~v505, design = dhs_surv) %>%
-  prop.table() %>%
-  { . * 100 } %>%
-  round(digits = 2)
 ```
 
 Here, we see that the mean number of other wives 0.45 and the maximum is 5.
 
-We can now create an exploratory violin plot to visualize the distribution of this variable.
+```{r, warning = F}
+kable(svytable(~v505, design = dhs_surv) %>%
+  prop.table() %>%
+  { . * 100 } %>%
+  round(digits = 2), col.names = c("Number of co-wives", "Percent"))
+```
+
+We can now create an exploratory histogram to visualize the distribution of this variable.
 
 ```{r, warning = F}
 ggplot(dhs_surv, aes(x = v505)) +
@@ -339,12 +347,12 @@ ggplot(dhs_surv, aes(x = v505)) +
 
 **2. Contraception decisions** - variable code V822. This categorical variable provides data on wives feeling justified to ask their husbands to use condoms if they have an STI.
 
-```{r}
+```{r, warning=F}
 dhs$v822[[2]]
-svytable(~v822, design = dhs_surv) %>%
+kable(svytable(~v822, design = dhs_surv) %>%
   prop.table() %>%
   { . * 100 } %>%
-  round(digits = 2)
+  round(digits = 2), col.names = c("Wife Justified to Ask Husband to use Condom", "Percent"))
 ```
 
 Again, we see some responses with a value of 8, which indicates "don't know". We will remove those with a value of 8 from our analysis.
@@ -353,6 +361,12 @@ Again, we see some responses with a value of 8, which indicates "don't know". We
 dhs_surv <- dhs_surv %>%
   filter(v822 != 8)
 ```
+
+```{r, echo = F}
+dhs <- dhs %>%
+  filter(v822 != 8)
+```
+
 
 We can again use a bar plot to visualize the response proportions for this variable.
 
@@ -512,21 +526,21 @@ dhs_surv <- dhs_surv %>%
 
 We can summarise the percentage for whom any beating is justified and the proportion with each score:
 
-```{r, echo = F}
+```{r, echo = F, results = 'hide'}
 mean(dhs$anybeating_justified) * 100
 round(prop.table(table(dhs$beating_justified_score)), digits = 2)
 ```
 
-```{r}
-dhs_surv %>%
+```{r, warning = F}
+kable(dhs_surv %>%
   summarise(prop_any_justified = survey_mean(anybeating_justified, na.rm = TRUE, vartype = NULL)) %>%
   mutate(prop_any_justified = prop_any_justified * 100) %>%
-  round(digits = 2)
+  round(digits = 2))
 
-svytable(~beating_justified_score, design = dhs_surv) %>%
+kable(svytable(~beating_justified_score, design = dhs_surv) %>%
   prop.table() %>%
   { . * 100 } %>%
-  round(digits = 2)
+  round(digits = 2), col.names = c("Beating justified score", "Percent"))
 ```
 
 
@@ -563,22 +577,22 @@ dhs$v812[[2]]
 
 First, we can explore the distribution of the two variables: husband listening and other man listening.
 
-```{r, echo = F}
+```{r, echo = F, results = 'hide'}
 table(dhs$v812) # husband listening
 table(dhs$v813) # other males listening 
 ```
 
-```{r}
+```{r, warning = F}
 # prop table with surv object
-svytable(~v812, design = dhs_surv) %>%
+kable(svytable(~v812, design = dhs_surv) %>%
   prop.table() %>%
   { . * 100 } %>%
-  round(digits = 2)
+  round(digits = 2), col.names = c("Husband listening", "Percent"))
 
-svytable(~v813, design = dhs_surv) %>%
+kable(svytable(~v813, design = dhs_surv) %>%
   prop.table() %>%
   { . * 100 } %>%
-  round(digits = 2)
+  round(digits = 2), col.names = c("Man listening", "Percent"))
 ```
 
 
@@ -611,21 +625,26 @@ We might hypothesize that women change their answers to questions about whether 
 
 We can first prepare the dataset by mutating the variables to be factors with labels and filtering out any missing data for these variables.
 
-```{r}
+```{r, echo = F}
 plot_df <- dhs %>%
   mutate(
     man_listening = factor(man_listening, levels=c(0,1), labels=c("No","Yes")),
     anybeating_justified = factor(anybeating_justified, levels=c(0,1), labels=c("No","Yes"))
   ) %>%
   filter(!is.na(man_listening), !is.na(anybeating_justified))
+```
 
-# rewrite this with surv object
-
+```{r}
+plot_dhs_surv <- dhs_surv %>% mutate(
+    man_listening = factor(man_listening, levels=c(0,1), labels=c("No","Yes")),
+    anybeating_justified = factor(anybeating_justified, levels=c(0,1), labels=c("No","Yes"))
+  ) %>%
+  filter(!is.na(man_listening), !is.na(anybeating_justified))
 ```
 
 We can then make the plot using ggplot
 
-```{r}
+```{r, echo = F, fig.show = "hide"}
 library(ggplot2) 
 
 ggplot(plot_df, aes(x = man_listening, fill = anybeating_justified)) +
@@ -638,6 +657,19 @@ ggplot(plot_df, aes(x = man_listening, fill = anybeating_justified)) +
     title = "Any beating justified by men listening"
   )
 ```
+
+```{r}
+ggplot(plot_dhs_surv, aes(x = man_listening, fill = anybeating_justified)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    x = "Men listening",
+    y = "Proportion",
+    fill = "Any beating justified",
+    title = "Any beating justified by men listening"
+  )
+```
+
 
 We can see that more women agreed with at least one statement that beating is justified when a man was listening compared to when no men were listening. This is an example of how we can use stratification to explore differences in the distribution of a variable across different groups. We can also use stratification to explore differences in the distribution of our outcomes across different groups, which we will see in the next section when we model our data.  
 
@@ -667,13 +699,13 @@ merged_data <- dhs %>%
 
 Now we can explore the merged data. This table shows the clusters with 10 highest population densities (measured in number of people per square kilometer).
 
-```{r}
-merged_data %>%
+```{r, warning = F}
+kable(merged_data %>%
   select(v001, UN_Population_Density_2010) %>%
   group_by(v001) %>%
   summarise(pop_density = mean(UN_Population_Density_2010, na.rm = TRUE)) %>%
   arrange(desc(pop_density)) %>%
-  head(10)
+  head(10), col.names = c("Cluster (v001)", "Population Density (people per sq km)"))
 ```
 
 Since there are over 200 clusters, creating a plot of population density by cluster may not be very informative, but we can create a histogram to visualize the distribution of population density across clusters.
@@ -692,6 +724,27 @@ ggplot(merged_data, aes(x = UN_Population_Density_2010)) +
 The advantage of merging datasets is that we can now directly tabulate or plot variables together from each of the datasets. Here, we create a table to show a potential relationship between number of co-wives and population density, since we may hypothesize that population density is related to the prevalence of polygamy. We see that population density seems to decrease as the number of co-wives increases, but we must be cautious to draw conclusions given that there are much fewer observations with 3+ co-wives. 
 
 ```{r, warning = F}
+# create survey object with merged data
+
+merged_surv <- svydesign(
+  ids = ~caseid,
+  strata = ~v001,
+  weights = ~v005,
+  data = merged_data 
+)
+
+merged_surv <- as_survey_design(merged_surv)
+
+kable(merged_surv %>%  
+  group_by(v505) %>%
+  summarise(avg_pop_density = survey_mean(UN_Population_Density_2010, na.rm = TRUE, vartype = NULL)) %>%
+  arrange(v505) %>%
+  mutate(avg_pop_density = round(avg_pop_density, digits = 2)) %>% # add count of observations in each group
+  mutate(count = round(unlist(svytable(~v505, design = merged_surv)))), col.names = c("Number of Co-Wives", "Average Population Density", "Count"))
+```
+
+
+```{r, echo = F, results = 'hide', warning= F}
 kable(merged_data %>%
   group_by(v505) %>%
   summarise(avg_pop_density = mean(UN_Population_Density_2010, na.rm = TRUE),
