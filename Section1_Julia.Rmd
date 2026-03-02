@@ -165,9 +165,7 @@ ggplot(dhs_df, aes(x = d105d, y = Freq)) +
 
 Since we have several variables representing domestic violence, we can combine them to create a single binary variable indicating any physical domestic violence:  
 
-**seems like some variables such as d105g have all NAs to begin with, so should remove those variables from analysis ?**
-
-```{r}
+```{r, echo = F}
 # restrict analysis to people who answered at least one of the domestic violence questions (i.e. those who have a value of 0 or 1 for at least one of the questions)
 dhs <- dhs %>%
   filter(!is.na(d105a) | !is.na(d105b) | !is.na(d105c) | !is.na(d105d) | !is.na(d105e) | !is.na(d105f) | 
@@ -189,51 +187,71 @@ dhs$any_domestic_violence <- case_when(
 # if any of the answers are 0 = never, set to zero. otherwise set to 1 (domestic violence present)
 ```
 
-```{r, echo = F, eval = F}
+
+```{r, echo = F, eval = T}
+# List of DV items to consider (only keep those that exist in this file)
+dv_vars <- c(paste0("d105", letters[1:11]), "d106", "d107", "d108")  # d105a-k + d106-108
+dv_vars <- intersect(dv_vars, names(dhs))                            # safety: keep only variables that exist
+
+# Create the binary DV outcome
+dhs <- dhs %>%
+  mutate(across(all_of(dv_vars), as.numeric)) %>%                     # ensure DV items are numeric
+  mutate(
+    any_domestic_violence = case_when(
+      # If any DV item equals 1, classify as DV experienced
+      rowSums(across(all_of(dv_vars), ~ .x == 1), na.rm = TRUE) > 0 ~ 1,
+      # If at least one DV item is observed (not NA) and none are 1, classify as no DV
+      rowSums(across(all_of(dv_vars), ~ !is.na(.x)), na.rm = TRUE) > 0 ~ 0,
+      # If all DV items are missing, keep as NA (not in module / not asked)
+      TRUE ~ NA_real_
+    )
+  )
+
+# Sanity check: must see both 0 and 1 for modeling
+# table(model_df$any_dv01, useNA = "ifany")
+```
+
+```{r}
 dhs_surv <- as_survey_design(dhs_surv)
 
+# List of DV items to consider (only keep those that exist in this file)
+dv_vars <- c(paste0("d105", letters[1:11]), "d106", "d107", "d108")  # d105a-k + d106-108
+dv_vars <- intersect(dv_vars, names(dhs))                            # safety: keep only variables that exist
+
+# Create the binary DV outcome
 dhs_surv <- dhs_surv %>%
-  # remove if any of the following are NA
-  filter(!(is.na(d105a) | is.na(d105b) | is.na(d105c) | is.na(d105d) | is.na(d105e) | is.na(d105f) | 
-           is.na(d105g) | is.na(d105h) | is.na(d105i) | is.na(d105j) | is.na(d105k) |
-           is.na(d105l) | is.na(d105m) | is.na(d105n) | is.na(d106) | is.na(d107) |
-           is.na(d108)))
-  
+  mutate(across(all_of(dv_vars), as.numeric)) %>%                     # ensure DV items are numeric
+  mutate(
+    any_domestic_violence = case_when(
+      # If any DV item equals 1, classify as DV experienced
+      rowSums(across(all_of(dv_vars), ~ .x == 1), na.rm = TRUE) > 0 ~ 1,
+      # If at least one DV item is observed (not NA) and none are 1, classify as no DV
+      rowSums(across(all_of(dv_vars), ~ !is.na(.x)), na.rm = TRUE) > 0 ~ 0,
+      # If all DV items are missing, keep as NA (not in module / not asked)
+      TRUE ~ NA_real_
+    )
+  )
+```
 
-  
-  
-  filter(!(is.na(d105a) | is.na(d105b) | is.na(d105c) | is.na(d105d) | is.na(d105e) | is.na(d105f) | 
-           is.na(d105g) | is.na(d105h) | is.na(d105i) | is.na(d105j) | is.na(d105k) |
-           is.na(d105l) | is.na(d105m) | is.na(d105n) | is.na(d106) | is.na(d107) |
-           is.na(d108)))
+After creating this binary variable, we will filter out any observations with a value of NA for this variable, which indicates that they were not asked any of the domestic violence questions and therefore we cannot classify them as having experienced domestic violence or not. 
 
-dhs_surv$variables$d105a
-
-dhs_surv <- dhs_surv %>% 
-  mutate(any_domestic_violence = case_when(
-  d105a > 0 | d105b > 0 | d105c > 0 | d105d > 0 | d105e > 0 | d105f > 0 | 
-    d105g > 0 | d105h > 0 | d105i > 0 | d105j > 0 | d105k > 0 |
-    d105l > 0 | d105m > 0 | d105n > 0 | d106 > 0 | d107 > 0 |
-    d108 > 0 ~ 1,
-  d105a == 0 & d105b == 0 & d105c == 0 & d105d == 0 & d105e == 0 & d105f == 0 &   d105g == 0 & d105h == 0 & d105i == 0 & d105j == 0 & d105k == 0 &
-  d105l == 0 & d105m == 0 & d105n == 0 & d106 == 0 & d107 == 0 & d108 == 0 ~ 0
-  #TRUE ~ NA_real_
-))
+```{r}
+dhs_surv <- dhs_surv %>% filter(!is.na(any_domestic_violence))
 ```
 
 
-Now we can print a table showing what proportion of women experienced any domestic violence according to this variable:
-```{r, message = F}
+Now we can print a table showing what percent of women experienced any domestic violence according to this variable:
+```{r, echo = F, results = 'hide'}
 table(dhs$any_domestic_violence)
 ```
 
-```{r, echo = F, eval = F}
+```{r, echo = F, warning = F}
 # tabulate a survey weighted table for proportion of women experiencing any domestic violence
-dhs_surv %>%
-  summarise(prop_dv = survey_prop(any_domestic_violence, na.rm = TRUE)) %>%
-  mutate(prop_dv = prop_dv * 100) %>%
-  round(digits = 2)
-dhs_surv$variables$any_domestic_violence
+dhs_surv %>% 
+  summarise(prop_any_dv = survey_mean(any_domestic_violence, na.rm = TRUE, vartype = NULL)) %>%
+  mutate(prop_any_dv = prop_any_dv * 100) %>%
+  round(digits = 2) %>%
+  kable(col.names = c("Percent experiencing any domestic violence (%)"))
 ```
 
 
@@ -757,54 +775,33 @@ kable(merged_data %>%
 
 This section demonstrates a simple modeling workflow using DHS data. The goal is to show how to:
 
-1. Define a **binary outcome** (any domestic violence: yes/no)
-2. Create key **predictors** (DV justification score; co-wives categories)
-3. Fit **logistic regression** models (unadjusted vs adjusted)
-4. Present results in two beginner-friendly ways:
+1. Create key **predictors** (beating justification score; co-wives categories)
+2. Fit **logistic regression** models (unadjusted vs adjusted)
+3. Present results in two beginner-friendly ways:
    - **Odds ratios** (forest plot)
    - **Predicted probabilities** (probability plots)
 
 ## What question are these models answering?
 
-These models focus on the DV-module sample and answer:
+These models focus on the domestic violence (DV) outcome and answer:
 
-- **Primary question:** Among women who answered the DV module, does agreeing with more DV-justification statements relate to a higher probability of experiencing any DV?
+- **Primary question:** Among women who answered the domestic violence (DV) questions, does agreeing with more beating-justification statements relate to a higher probability of experiencing any DV?
 - **Secondary question:** Do co-wives groups (0 / 1 / 2+) differ in DV risk?
 
 > Note: These are **associations** within the DV-module sample, not causal effects.
 
-## Step 1 — Create a clean binary DV outcome (0/1)
+## Step 1 — Examine the DV outcome variable 
 
 ### Why this step is needed
 
-Domestic violence is measured by multiple items (`d105a–d105k`, `d106–d108`).
-For logistic regression, the outcome must be a true binary variable:
+Domestic violence is measured by multiple items (`d105a–d105k`, `d106–d108`). In Section 2, we created a variable called any_domestic_violence according to the following coding:
 
 * **1** = experienced any DV (at least one DV item = 1)
 * **0** = answered DV items and none were 1
-* **NA** = did not answer DV items (DV module not administered / missing)
+* removed those with DV items missing (not in module / not asked)
 
-```{r}
-# List of DV items to consider (only keep those that exist in this file)
-dv_vars <- c(paste0("d105", letters[1:11]), "d106", "d107", "d108")  # d105a-k + d106-108
-dv_vars <- intersect(dv_vars, names(dhs))                            # safety: keep only variables that exist
-
-# Create the binary DV outcome
-model_df <- dhs %>%
-  mutate(across(all_of(dv_vars), as.numeric)) %>%                     # ensure DV items are numeric
-  mutate(
-    any_dv01 = case_when(
-      # If any DV item equals 1, classify as DV experienced
-      rowSums(across(all_of(dv_vars), ~ .x == 1), na.rm = TRUE) > 0 ~ 1,
-      # If at least one DV item is observed (not NA) and none are 1, classify as no DV
-      rowSums(across(all_of(dv_vars), ~ !is.na(.x)), na.rm = TRUE) > 0 ~ 0,
-      # If all DV items are missing, keep as NA (not in module / not asked)
-      TRUE ~ NA_real_
-    )
-  )
-
-# Sanity check: must see both 0 and 1 for modeling
-table(model_df$any_dv01, useNA = "ifany")
+```{r, warning = F}
+kable(table(dhs_surv$variables$any_domestic_violence), col.names = c("Any DV", "Count"))
 ```
 
 After combining the DV items into a single outcome, the analysis sample contains 956 women coded as 0 (no DV) and 738 coded as 1 (any DV). This confirms the outcome has both categories and is suitable for logistic regression. Interpreted descriptively within this DV-module sample, about 44% reported experiencing any DV (738 out of 1,694).
