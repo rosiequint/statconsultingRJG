@@ -241,12 +241,12 @@ dhs_surv$variables$any_domestic_violence
 
 ```{r}
 dhs$v312[[2]]
-table(dhs$v312)
 ```
 
-We can also make this table with percentages for better interpretability:
+Again, we can make this table with percentages to show the distribution of contraceptive use:  
+
 ```{r}
-table(dhs$v312) %>%
+svytable(~v312, design = dhs_surv) %>%
   prop.table() %>%
   { . * 100 } %>%
   round(digits = 2)
@@ -254,6 +254,15 @@ table(dhs$v312) %>%
 
 To explore what proportion of women use any contraception, we can create a new binary variable indicating any contraception use:
 ```{r}
+dhs_surv <- as_survey_design(dhs_surv)
+dhs_surv <- dhs_surv %>% mutate(contraception_use = case_when(
+  v312 > 0 ~ 1,
+  v312 == 0 ~ 0
+  ))
+```
+
+
+```{r, echo = F}
 dhs$contraception_use <- case_when(
   dhs$v312 > 0 ~ 1,
   dhs$v312 == 0 ~ 0
@@ -263,6 +272,20 @@ dhs$contraception_use <- case_when(
 We can again make a bar plot to show the most common contraception choices by excluding those who didn't use:
 
 ```{r}
+dhs_surv <- dhs_surv %>% mutate(v312_factor = as_factor(v312)) # convert to factor variable to get the labels for the bar plot
+
+# create bar plot
+ggplot(dhs_surv %>% filter(contraception_use == 1),
+       aes(x = fct_infreq(v312_factor))) +
+  geom_bar() +
+  labs(
+    x = "Current contraceptive method",
+    y = "Count",
+    title = "Current contraceptive method") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) #rotate x axis labels
+```
+
+```{r, echo = F, fig.show = "hide"}
 dhs$v312_factor <- as_factor(dhs$v312) # convert to factor variable to get the labels for the bar plot
 
 ggplot(dhs %>% filter(contraception_use == 1),
@@ -285,25 +308,27 @@ We can see that the majority of women use no contraception, and among those whic
 dhs$v505[[2]]
 
 # remove those with a value of 98 for this variable from our analysis
-dhs <- dhs %>%
+dhs_surv <- dhs_surv %>%
   filter(v505 != 98)
 ```
 
 For this continuous variable, we can use the summary command to get a sense of the distribution of this variable in our data.
 
 ```{r}
-# summarize the variable after removing those with a value of 98
-summary(dhs$v505)
+summary(dhs_surv$variables$v505)
+
+svytable(~v505, design = dhs_surv) %>%
+  prop.table() %>%
+  { . * 100 } %>%
+  round(digits = 2)
 ```
 
-Here, we see that the mean number of other wives 0.38 and the maximum is 5.
-
-histogram instead?
+Here, we see that the mean number of other wives 0.45 and the maximum is 5.
 
 We can now create an exploratory violin plot to visualize the distribution of this variable.
 
 ```{r, warning = F}
-ggplot(dhs, aes(x = v505)) +
+ggplot(dhs_surv, aes(x = v505)) +
   geom_histogram(binwidth = 1) + 
   labs(
     x = "Number of co-wives",
@@ -316,19 +341,34 @@ ggplot(dhs, aes(x = v505)) +
 
 ```{r}
 dhs$v822[[2]]
-table(dhs$v822)
+svytable(~v822, design = dhs_surv) %>%
+  prop.table() %>%
+  { . * 100 } %>%
+  round(digits = 2)
 ```
 
 Again, we see some responses with a value of 8, which indicates "don't know". We will remove those with a value of 8 from our analysis.
 
 ```{r}
-dhs <- dhs %>%
+dhs_surv <- dhs_surv %>%
   filter(v822 != 8)
 ```
 
 We can again use a bar plot to visualize the response proportions for this variable.
 
 ```{r}
+dhs_surv <- dhs_surv %>% mutate(v822_factor = as_factor(v822)) # convert to factor variable to get the labels for the bar plot
+
+ggplot(dhs_surv, aes(x = v822_factor)) +
+  geom_bar() +
+  labs(
+    x = "Response",
+    y = "Count",
+    title = "Wife justified to ask husband to use condom if he has an STI"
+  )
+```
+
+```{r, echo = F, fig.show = "hide"}
 dhs$v822_factor <- as_factor(dhs$v822) # convert to factor variable to get the labels for the bar plot
 
 ggplot(dhs, aes(x = v822_factor)) +
@@ -350,13 +390,20 @@ Since we will be combining these variables into a single variable, we first need
 
 ```{r}
 # remove if any of 744a-e are missing
+dhs_surv <- dhs_surv %>%
+  filter(v744a != 8 & v744b != 8 & v744c != 8 & v744d != 8 & v744e != 8)
+```
+
+```{r, echo = F}
+# remove if any of 744a-e are missing
 dhs <- dhs %>%
   filter(v744a != 8 & v744b != 8 & v744c != 8 & v744d != 8 & v744e != 8)
 ```
 
+
 We can plot the proportion agreeing with each of the statements. 
 
-```{r, eval = T}
+```{r, eval = T, echo = F, fig.show = "hide"}
 vars <- c("v744a","v744b","v744c","v744d","v744e")
  # convert to factor variables to get the labels for the bar plot
 
@@ -388,9 +435,40 @@ ggplot(plot_data, aes(x = statement, y = percent_agree)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+```{r}
+vars <- c("v744a","v744b","v744c","v744d","v744e")
+ # convert to factor variables to get the labels for the bar plot
+
+# question labels
+question_labels <- sapply(dhs[vars], function(x) attr(x, "label"))
+
+# remove 'beating justified' from the start of the label
+question_labels <- gsub("beating justified if", "", question_labels)
+
+dhs_surv <- dhs_surv %>%
+  mutate(across(all_of(vars), as.numeric)) # ensure numeric for calculation
+
+plot_data_surv <- data.frame(
+  statement = question_labels,
+  percent_agree = sapply(vars, function(var) {
+    svymean(~get(var) == 1, design = dhs_surv, na.rm = TRUE)[1] * 100
+  })
+)
+
+ggplot(plot_data_surv, aes(x = statement, y = percent_agree)) +
+  geom_col() +
+  labs(
+    x = "Statement",
+    y = "Percent agreeing (survey-weighted)",
+    title = "Percent agreeing that beating is justified"
+  ) +
+  ylim(0, 100) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
 We can then create an indicator variable showing agreement with any of the statements and create a combined score that indicates how many of the statements a woman agrees with. 
 
-```{r}
+```{r, echo = F}
 dhs <- dhs %>%
   mutate(
     anybeating_justified = if_else(
@@ -411,15 +489,50 @@ dhs <- dhs %>%
   )
 ```
 
+```{r}
+dhs_surv <- dhs_surv %>%
+  mutate(
+    anybeating_justified = if_else(
+      if_any(all_of(vars), ~ . == 1),
+      1, 0
+    )
+  )
+
+# make score 
+dhs_surv <- dhs_surv %>%
+  mutate(
+    beating_justified_score = 
+      (v744a == 1) +
+      (v744b == 1) +
+      (v744c == 1) +
+      (v744d == 1) +
+      (v744e == 1)
+  )
+```
+
 We can summarise the percentage for whom any beating is justified and the proportion with each score:
 
-```{r}
+```{r, echo = F}
 mean(dhs$anybeating_justified) * 100
 round(prop.table(table(dhs$beating_justified_score)), digits = 2)
 ```
 
-We can also plot the score:
 ```{r}
+dhs_surv %>%
+  summarise(prop_any_justified = survey_mean(anybeating_justified, na.rm = TRUE, vartype = NULL)) %>%
+  mutate(prop_any_justified = prop_any_justified * 100) %>%
+  round(digits = 2)
+
+svytable(~beating_justified_score, design = dhs_surv) %>%
+  prop.table() %>%
+  { . * 100 } %>%
+  round(digits = 2)
+```
+
+
+We can also plot the score:
+
+```{r, echo = F, fig.show = "hide"}
 ggplot(dhs, aes(x = beating_justified_score)) +
   geom_bar() +
   scale_x_continuous(breaks = 0:5) +
@@ -430,6 +543,18 @@ ggplot(dhs, aes(x = beating_justified_score)) +
   )
 ```
 
+```{r}
+ggplot(dhs_surv, aes(x = beating_justified_score)) +
+  geom_bar() +
+  scale_x_continuous(breaks = 0:5) +
+  labs(
+    x = "Score (Number of statements agreed with)",
+    y = "Count",
+    title = "Distribution of Beating Justified Score (survey-weighted)"
+  )
+```
+
+
 **4. Man present and/or listening during interview** - variable codes (V812 & V813). This categorical variable asks the survey respondent if their husband (V812) or another man (V813) is either not present, present but not listening, or present and listening during the interview.  
 
 ```{r}
@@ -438,20 +563,43 @@ dhs$v812[[2]]
 
 First, we can explore the distribution of the two variables: husband listening and other man listening.
 
-```{r}
+```{r, echo = F}
 table(dhs$v812) # husband listening
 table(dhs$v813) # other males listening 
 ```
 
+```{r}
+# prop table with surv object
+svytable(~v812, design = dhs_surv) %>%
+  prop.table() %>%
+  { . * 100 } %>%
+  round(digits = 2)
+
+svytable(~v813, design = dhs_surv) %>%
+  prop.table() %>%
+  { . * 100 } %>%
+  round(digits = 2)
+```
+
+
 We can now create a new variable indicating whether *any man* was listening
 
-```{r}
+```{r, echo = F}
 dhs$man_listening <- case_when(
   dhs$v812 == 1 | dhs$v813 == 1 ~ 1,
   dhs$v812 == 0 & dhs$v813 == 0 ~ 0,
   TRUE ~ NA_real_
   )
 ```
+
+```{r}
+dhs_surv <- dhs_surv %>% mutate(man_listening = case_when(
+  v812 == 1 | v813 == 1 ~ 1,
+  v812 == 0 & v813 == 0 ~ 0,
+  TRUE ~ NA_real_
+))
+```
+
 
 ## Stratified Variable Plots
 
@@ -470,6 +618,9 @@ plot_df <- dhs %>%
     anybeating_justified = factor(anybeating_justified, levels=c(0,1), labels=c("No","Yes"))
   ) %>%
   filter(!is.na(man_listening), !is.na(anybeating_justified))
+
+# rewrite this with surv object
+
 ```
 
 We can then make the plot using ggplot
