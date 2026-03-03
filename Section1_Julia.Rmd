@@ -788,7 +788,7 @@ These models focus on the domestic violence (DV) outcome and answer:
 - **Primary question:** Among women who answered the domestic violence (DV) questions, does agreeing with more beating-justification statements relate to a higher probability of experiencing any DV?
 - **Secondary question:** Do co-wives groups (0 / 1 / 2+) differ in DV risk?
 
-> Note: These are **associations** within the DV-module sample, not causal effects.
+> Note: These are **associations** within the DV-module sample, not causal effects. We provide this example with DV as the outcome, but the same framework can be applied to the contraception use outcome or any other binary outcome. 
 
 ## Step 1 — Examine the DV outcome variable 
 
@@ -1160,19 +1160,19 @@ ggplot(res_m1, aes(x = OR, y = term_label)) +
 
 The forest plot summarizes the adjusted model by showing each odds ratio and its 95% confidence interval relative to the reference groups. The beating-justification score sits slightly above 1, reflecting a small positive association with DV odds. The co-wives estimates are close to 1 with wide confidence intervals, which visually reinforces that the model does not provide strong evidence of differences by co-wives group. The plot is most useful for quickly identifying direction (above or below 1) and uncertainty (how wide the CI is).
 
-## Step 8 — Predicted probabilities
+## Step 7 — Predicted probabilities
 
 ### Why predicted probabilities?
 
-Odds ratios can be hard for beginners. Predicted probabilities answer:
+Odds ratios can be hard for to interpret. Predicted probabilities answer:
 
 > “Given certain characteristics, what is the model-estimated probability of DV?”
 
-To compare groups fairly, other covariates are held at “typical” values (most common levels).
+We may want to predict the probability of DV based on number of co-wives or beating justification score. To do so, we can set our other control variables (education, wealth, residence) to “typical” values (most common levels). 
 
 ### Step 8a — Define typical covariate values used for predictions
 
-```{r, eval = F}
+```{r}
 mode_level <- function(x) names(which.max(table(x)))
 
 typical_v106 <- mode_level(analysis_df$v106)  # education
