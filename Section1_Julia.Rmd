@@ -806,19 +806,37 @@ kable(table(dhs_surv$variables$any_domestic_violence), col.names = c("Any DV", "
 
 After combining the DV items into a single outcome, the analysis sample contains 956 women coded as 0 (no DV) and 738 coded as 1 (any DV). This confirms the outcome has both categories and is suitable for logistic regression. Interpreted descriptively within this DV-module sample, about 44% reported experiencing any DV (738 out of 1,694).
 
-## Step 2 — Create DV-justification score (0–5)
+```{r, echo = F, results = 'hide', warning = F}
+# List of DV items to consider (only keep those that exist in this file)
+dv_vars <- c(paste0("d105", letters[1:11]), "d106", "d107", "d108")  # d105a-k + d106-108
+dv_vars <- intersect(dv_vars, names(dhs))                            # safety: keep only variables that exist
+
+# Create the binary DV outcome
+model_df <- dhs %>%
+  mutate(across(all_of(dv_vars), as.numeric)) %>%                     # ensure DV items are numeric
+  mutate(
+    any_dv01 = case_when(
+      # If any DV item equals 1, classify as DV experienced
+      rowSums(across(all_of(dv_vars), ~ .x == 1), na.rm = TRUE) > 0 ~ 1,
+      # If at least one DV item is observed (not NA) and none are 1, classify as no DV
+      rowSums(across(all_of(dv_vars), ~ !is.na(.x)), na.rm = TRUE) > 0 ~ 0,
+      # If all DV items are missing, keep as NA (not in module / not asked)
+      TRUE ~ NA_real_
+    )
+  )
+
+# Sanity check: must see both 0 and 1 for modeling
+table(model_df$any_dv01, useNA = "ifany")
+```
+
+
+## Step 2 — Examine the Beating-justification score (0–5) predictor
 
 ### What is a score variable?
 
-A **score** summarizes multiple related questions into one number.
-Here, `dv_justify_score` counts how many DV-justification items the respondent agreed with (0–5).
+In section 2, we created a variable called 'beating_justified_score,' which counts how many of the beating-justification questions the respondent agreed with (0–5).  
 
-### Missing-data teaching point
-
-Responses like “don’t know” are often coded as **8 or 9**.
-These should be converted to **NA** so they are not mistakenly treated as “no”.
-
-```{r}
+```{r, echo = F, resuts = 'hide'}
 # DV justification items (5 questions)
 dvj_vars <- c("v744a","v744b","v744c","v744d","v744e")
 dvj_vars <- intersect(dvj_vars, names(model_df))                      # safety: keep only variables that exist
@@ -839,20 +857,24 @@ model_df <- model_df %>%
 summary(model_df$dv_justify_score)
 ```
 
-The DV-justification score ranges from 0 to 5, with a median of 2 and a mean of about 2.10. In plain terms, a typical respondent agreed with around two of the five DV-justification statements. Because the score covers the full range (0–5), it is meaningful to examine how DV risk changes as the score increases.
+```{r}
+summary(dhs_surv$variables$beating_justified_score)
+```
+
+
+The DV-justification score ranges from 0 to 5, with a median of 2 and a mean of about 2.12. In plain terms, a typical respondent agreed with around two of the five beating-justification statements. Because the score covers the full range (0–5), it is meaningful to examine how DV risk changes as the score increases.
 
 ## Step 3 — Collapse co-wives into stable categories (0 / 1 / 2+)
 
 ### Why collapse categories?
 
-Rare categories (e.g., 4 or 5 co-wives) can cause unstable estimates and convergence warnings.
-For teaching and stability, we collapse into:
+Rare categories (e.g., 4 or 5 co-wives) can cause unstable estimates and convergence warnings. Referring to Section 2, we have few data points with 3+ co-wives, so we can collapse the categories:
 
 * 0 co-wives
 * 1 co-wife
 * 2+ co-wives
 
-```{r}
+```{r, echo = F}
 model_df <- model_df %>%
   mutate(
     cowives_cat = case_when(
@@ -866,12 +888,27 @@ model_df <- model_df %>%
   )
 ```
 
+```{r}
+dhs_surv <- dhs_surv %>%
+  mutate(
+    cowives_cat = case_when(
+      is.na(v505) ~ NA_character_,      # missing stays missing
+      v505 == 98 ~ NA_character_,       # 98 = "don't know"
+      v505 == 0 ~ "0",
+      v505 == 1 ~ "1",
+      v505 >= 2 ~ "2+"
+    ),
+    cowives_cat = factor(cowives_cat)   # make it a factor for modeling
+  )
+```
+
+
+```{r, echo = F, results = 'hide'}
 ## Step 4 — Create the analysis dataset used in models
 
-Logistic regression needs outcome and predictors to be observed.
-This step creates a clean dataset with complete cases for the model variables.
+#Logistic regression needs outcome and predictors to be observed.
+#This step creates a clean dataset with complete cases for the model #variables.
 
-```{r}
 analysis_df <- model_df %>%
   filter(
     !is.na(any_dv01),
@@ -888,23 +925,25 @@ analysis_df <- model_df %>%
 
 # Optional: check sample size after filtering
 nrow(analysis_df)
+
+#After excluding rows with missing outcome, predictors, or covariates, the final modeling dataset includes 1,694 women. This is a complete-case analysis for the variables used in the models, meaning results apply to this subset with complete information rather than the full DHS file.
 ```
 
-After excluding rows with missing outcome, predictors, or covariates, the final modeling dataset includes 1,694 women. This is a complete-case analysis for the variables used in the models, meaning results apply to this subset with complete information rather than the full DHS file.
-
-## Step 5 — Fit logistic regression models (unadjusted vs adjusted)
+## Step 4 — Fit logistic regression models (unadjusted vs adjusted)
 
 ### What is logistic regression?
 
 **Logistic regression** is used for binary outcomes (0/1).
-It estimates the association between predictors and the **log-odds** of the outcome.
+It estimates the association between predictors and the **log-odds** of the outcome. Log-odds is the log of the probability that the outcome equals 1 divided by the probability that the outcome equals 0:  
+
+$log.odds = log(\frac{P(Y=1)}{P(Y=0)})$
 
 ### Unadjusted vs adjusted models
 
-* **Unadjusted model:** DV ~ justification score (simple association)
-* **Adjusted model:** adds co-wives + education + wealth + residence (controls)
+* **Unadjusted model:** DV ~ beating-justification score (simple association); in an unadjusted model we have our primary predictor of interest but do not include any other variables in the model. 
+* **Adjusted model:** DV ~ beating-justification score + **number of co-wives + contraceptive-decision + education + wealth + residence (controls)**; in an adjusted model, we include our primary predictor of interest (beating-justification score) and also include other variables that we want to control for in the model. In this case, we are controlling for number of co-wives and contraceptive-decision as additional main predictors, and education (V106), wealth (V190), and residence (V025) as control variables. 
 
-```{r}
+```{r, echo = F}
 # Unadjusted model
 m0 <- glm(any_dv01 ~ dv_justify_score,
           data = analysis_df,
@@ -917,7 +956,29 @@ m1 <- glm(any_dv01 ~ dv_justify_score + cowives_cat + v106 + v190 + v025,
           control = glm.control(maxit = 50))
 ```
 
-## Step 6 — Summarize results as odds ratios (OR) with 95% CI
+```{r}
+# Unadjusted model
+m0 <- svyglm(any_domestic_violence ~ beating_justified_score,
+             design = dhs_surv,
+             family = quasibinomial())
+
+# Adjusted model
+
+# here, we can create labels for our variables so we can easily identify them in model output later on:
+dhs_surv <- dhs_surv %>%
+  mutate(contraception_dec = v822_factor) %>% 
+  mutate(education = as.factor(v106)) %>%
+  mutate(wealth = as.factor(v190)) %>%
+  mutate(residence = as.factor(v025))
+    
+m1 <- svyglm(any_domestic_violence ~ beating_justified_score + contraception_dec + cowives_cat + education + wealth + residence,
+             design = dhs_surv,
+             family = quasibinomial(),
+             control = glm.control(maxit = 50))
+```
+
+
+## Step 5 — Summarize results as odds ratios (OR) with 95% CI
 
 ### What is an odds ratio (OR)?
 
@@ -932,7 +993,7 @@ An **odds ratio** compares odds between groups:
 A **95% CI** gives a plausible range for the true OR.
 If the CI includes 1, the estimate is not clearly different from no association.
 
-```{r}
+```{r, warning = F}
 # Helper function: convert glm output to OR + Wald 95% CI
 or_wald <- function(fit){
   broom::tidy(fit) %>%
@@ -945,29 +1006,29 @@ or_wald <- function(fit){
 }
 
 # Show unadjusted and adjusted results
-or_wald(m0)
+kable(or_wald(m0)) 
 ```
 
-**Unadjusted model results (DV ~ justification score)**  
-In the unadjusted logistic regression, each one-point increase in DV-justification score is associated with an odds ratio of 1.05 (95% CI 1.00 to 1.11, p = 0.051). This suggests that agreeing with one additional justification item is linked to about 5% higher odds of reporting any DV, although the evidence is borderline because the confidence interval is very close to 1 and the p-value is just above 0.05.
+**Unadjusted model results (DV ~ beating-justification score)**  
+In the unadjusted logistic regression, each one-point increase in beating-justification score is associated with an odds ratio of 1.05 (95% CI 0.99 to 1.12, p = 0.09). This suggests that agreeing with one additional justification item is linked to about 5% higher odds of reporting any DV, although the evidence is borderline because the confidence interval is very close to 1 and the p-value is above 0.05.
 
-```{r}
-or_wald(m1)
+```{r, warning = F}
+kable(or_wald(m1))
 ```
 
 **Adjusted model results (DV ~ score + co-wives + controls)**  
-In the adjusted model (controlling for co-wives group, education, wealth, and residence), the DV-justification score remains very similar: odds ratio 1.05 (95% CI 0.997 to 1.11, p = 0.066). This indicates the association is consistent after adjustment, but still modest and not strongly conclusive in this sample. For co-wives groups, neither 1 vs 0 (OR 1.12, 95% CI 0.89–1.41) nor 2+ vs 0 (OR 0.91, 95% CI 0.58–1.44) shows a clear difference in DV odds because both confidence intervals cross 1. Among the control variables, most estimates are imprecise and cross 1; one notable exception is Wealth: middle vs poorest (OR 1.35, 95% CI 1.01–1.81), which suggests higher odds for the middle group relative to the poorest in this model.
+In the adjusted model (controlling for co-wives group, education, wealth, and residence), the DV-justification score remains very similar: odds ratio 1.05 (95% CI 0.99 to 1.12, p = 0.12). This indicates the association is consistent after adjustment, but still modest and not strongly conclusive in this sample. For co-wives groups, neither 1 vs 0 (OR 1.18, 95% CI 0.90–1.55) nor 2+ vs 0 (OR 0.98, 95% CI 0.59–1.63) shows a clear difference in DV odds because both confidence intervals cross 1. Among the control variables, most estimates of the OR cross 1; one notable exception is Wealth: middle vs poorest (OR 1.55, 95% CI 1.11–2.15), which suggests higher odds for the middle group relative to the poorest in this model.
 
-## Step 7 — Forest plot of adjusted odds ratios (teaching-friendly)
+## Step 6 — Forest plot of adjusted odds ratios 
 
 This plot summarizes the adjusted model (`m1`) in one figure:
 
 * Points are OR estimates
 * Horizontal lines are 95% CIs
 * The vertical dashed line at OR = 1 indicates no association
-* Labels are converted to human-readable terms
+* Labels are converted to readable terms
 
-```{r}
+```{r, eval = F, echo = F}
 res_m1 <- or_wald(m1) %>%
   filter(term != "(Intercept)") %>%
   mutate(
@@ -1031,7 +1092,73 @@ ggplot(res_m1, aes(x = OR, y = term_label)) +
   )
 ```
 
-The forest plot summarizes the adjusted model by showing each odds ratio and its 95% confidence interval relative to the reference groups. The DV-justification score sits slightly above 1, reflecting a small positive association with DV odds. The co-wives estimates are close to 1 with wide confidence intervals, which visually reinforces that the model does not provide strong evidence of differences by co-wives group. The plot is most useful for quickly identifying direction (above or below 1) and uncertainty (how wide the CI is).
+```{r, fig.height = 7, fig.width = 8, warning = F}
+res_m1 <- or_wald(m1) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    # Group variables to make the plot easier to read
+    group = case_when(
+      term == "beating_justified_score" ~ "Main predictors",
+      str_detect(term, "^cowives_cat") ~ "Main predictors",
+       term == "contraception_decyes" ~ "Main predictors",
+      TRUE ~ "Controls"
+    ),
+
+    # Human-readable labels
+    term_label = case_when(
+      term == "beating_justified_score" ~ "Beating justification (per +1 item)",
+      term == "contraception_decyes" ~ "Contraception decision: yes vs no",
+      term == "cowives_cat1" ~ "Co-wives: 1 vs 0",
+      term == "cowives_cat2+" ~ "Co-wives: 2+ vs 0",
+      term == "residence2" ~ "Residence: rural vs urban",
+      term == "education1" ~ "Education: primary vs none",
+      term == "education2" ~ "Education: secondary vs none",
+      term == "education3" ~ "Education: higher vs none",
+      term == "wealth2" ~ "Wealth: poorer vs poorest",
+      term == "wealth3" ~ "Wealth: middle vs poorest",
+      term == "wealth4" ~ "Wealth: richer vs poorest",
+      term == "wealth5" ~ "Wealth: richest vs poorest",
+      TRUE ~ term
+    ),
+
+    # Text column (OR with CI) for readability
+    or_text = sprintf("%.2f (%.2f, %.2f)", OR, OR_low, OR_high)
+  ) %>%
+  arrange(group) %>% #, desc(abs(log(OR)))) %>%
+  mutate(
+    term_label = fct_inorder(term_label),
+    group = factor(group, levels = c("Main predictors", "Controls"))
+  )
+
+# Extend x-axis so text can fit on the right
+xmax <- max(res_m1$OR_high, na.rm = TRUE)
+xlim_right <- xmax * 1.35
+
+ggplot(res_m1, aes(x = OR, y = term_label)) +
+  geom_vline(xintercept = 1, linetype = 2) +
+  geom_errorbar(aes(xmin = OR_low, xmax = OR_high),
+                width = 0.2, orientation = "y") +
+  geom_point(size = 2) +
+  geom_text(aes(x = OR_high * 1.05, label = or_text), hjust = 0, size = 3) +
+  facet_grid(group ~ ., scales = "free_y", space = "free_y") +
+  scale_x_continuous(breaks = c(1, 2)) +
+  coord_cartesian(xlim = c(0.45, xlim_right), clip = "off") +
+  labs(
+    title = "Adjusted associations with any DV",
+    subtitle = "Reference groups: 0 co-wives, no education, poorest, urban",
+    x = "Odds ratio",
+    y = NULL
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank(),
+    strip.text.y = element_text(face = "bold"),
+    plot.margin = margin(5.5, 80, 5.5, 5.5)
+  )
+```
+
+The forest plot summarizes the adjusted model by showing each odds ratio and its 95% confidence interval relative to the reference groups. The beating-justification score sits slightly above 1, reflecting a small positive association with DV odds. The co-wives estimates are close to 1 with wide confidence intervals, which visually reinforces that the model does not provide strong evidence of differences by co-wives group. The plot is most useful for quickly identifying direction (above or below 1) and uncertainty (how wide the CI is).
 
 ## Step 8 — Predicted probabilities
 
@@ -1045,7 +1172,7 @@ To compare groups fairly, other covariates are held at “typical” values (mos
 
 ### Step 8a — Define typical covariate values used for predictions
 
-```{r}
+```{r, eval = F}
 mode_level <- function(x) names(which.max(table(x)))
 
 typical_v106 <- mode_level(analysis_df$v106)  # education
@@ -1062,7 +1189,7 @@ cat("  DV justification score (median):", typical_score, "\n")
 
 ### Step 8b — Predicted Pr(DV) by co-wives group (holding others constant)
 
-```{r}
+```{r, eval = F}
 newdat <- expand.grid(
   dv_justify_score = typical_score,
   cowives_cat = levels(analysis_df$cowives_cat),
@@ -1095,7 +1222,7 @@ This plot translates the adjusted model into predicted probabilities for each co
 
 ### Step 8c — Predicted Pr(DV) across DV-justification scores, by co-wives group
 
-```{r}
+```{r, eval = F}
 new_score <- expand.grid(
   dv_justify_score = 0:5,
   cowives_cat = levels(analysis_df$cowives_cat),
