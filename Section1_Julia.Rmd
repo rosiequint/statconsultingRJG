@@ -342,7 +342,7 @@ For this continuous variable, we can use the summary command to get a sense of t
 summary(dhs_surv$variables$v505)
 ```
 
-Here, we see that the mean number of other wives 0.45 and the maximum is 5.
+Here, we see that the mean number of other wives 0.38 and the maximum is 5.
 
 ```{r, warning = F}
 kable(svytable(~v505, design = dhs_surv) %>%
@@ -1168,34 +1168,39 @@ Odds ratios can be hard for to interpret. Predicted probabilities answer:
 
 > “Given certain characteristics, what is the model-estimated probability of DV?”
 
-We may want to predict the probability of DV based on number of co-wives or beating justification score. To do so, we can set our other control variables (education, wealth, residence) to “typical” values (most common levels). 
+We may want to predict the probability of DV based on a certain number of co-wives or beating justification score. To do so, we can set our other control variables (education, wealth, residence) to “typical” values (most common levels). 
 
-### Step 8a — Define typical covariate values used for predictions
+### Step 7a — Define typical covariate values used for predictions
 
-```{r}
+```{r, results = 'hold'}
 mode_level <- function(x) names(which.max(table(x)))
 
-typical_v106 <- mode_level(analysis_df$v106)  # education
-typical_v190 <- mode_level(analysis_df$v190)  # wealth
-typical_v025 <- mode_level(analysis_df$v025)  # residence
-typical_score <- median(analysis_df$dv_justify_score, na.rm = TRUE)
+typical_v106 <- mode_level(dhs_surv$variables$v106)  # education
+typical_v190 <- mode_level(dhs_surv$variables$v190)  # wealth
+typical_v025 <- mode_level(dhs_surv$variables$v025)  # residence
+typical_score <- median(dhs_surv$variables$beating_justified_score, na.rm = TRUE)
+typical_contraception_dec <- mode_level(dhs_surv$variables$contraception_dec)
 
 cat("Typical values used for predictions:\n")
 cat("  Education (v106):", typical_v106, "\n")
 cat("  Wealth (v190):", typical_v190, "\n")
 cat("  Residence (v025):", typical_v025, "\n")
-cat("  DV justification score (median):", typical_score, "\n")
+cat("  Beating-justification score (median):", typical_score, "\n")
+cat("  Contraception decision:", typical_contraception_dec, "\n")
 ```
 
-### Step 8b — Predicted Pr(DV) by co-wives group (holding others constant)
+Here, we have created a hypothetical profile of a woman with the most common education level (no education), wealth index (poorest), residence (urban), and contraception decision (yes), and a typical beating-justification score (median of 2). We will use this profile to predict the probability of DV across different co-wives groups, while holding these other characteristics constant.
 
-```{r, eval = F}
+### Step 7b — Predicted Pr(DV) by co-wives group (holding others constant)
+
+```{r}
 newdat <- expand.grid(
-  dv_justify_score = typical_score,
-  cowives_cat = levels(analysis_df$cowives_cat),
-  v106 = typical_v106,
-  v190 = typical_v190,
-  v025 = typical_v025
+  beating_justified_score = typical_score,
+  cowives_cat = levels(dhs_surv$variables$cowives_cat),
+  education = typical_v106,
+  wealth = typical_v190,
+  residence = typical_v025,
+  contraception_dec = typical_contraception_dec
 )
 
 # Model-based predicted probabilities
@@ -1209,31 +1214,28 @@ ggplot(newdat, aes(x = cowives_cat, y = pred_p)) +
     x = "Number of co-wives (0 / 1 / 2+)",
     y = "Predicted probability of any DV",
     title = "Predicted Pr(any DV) by co-wives group",
-    subtitle = paste0(
-      "Adjusted model; held typical: v106=", typical_v106,
-      ", v190=", typical_v190, ", v025=", typical_v025,
-      "; DV-justify score fixed at median=", typical_score
-    )
-  ) +
+    subtitle = paste0("")
+    ) +
   theme_minimal()
 ```
 
-This plot translates the adjusted model into predicted probabilities for each co-wives category while holding other covariates at “typical” values and fixing the DV-justification score at its median (2). The predicted probabilities are all in the mid-to-high 30% to low 40% range, and the differences between groups are relatively small. This matches the regression results: co-wives group does not show a strong, clearly separated association with DV in the adjusted model.
+This plot translates the adjusted model into predicted probabilities for each co-wives category while holding other covariates at “typical” values explained above and fixing the beating-justification score at its median (2). The predicted probabilities are all in the mid-to-high 30% to low 40% range, and the differences between groups are relatively small. This matches the regression results: co-wives group does not show a strong, clearly separated association with DV in the adjusted model.
 
-### Step 8c — Predicted Pr(DV) across DV-justification scores, by co-wives group
+### Step 7c — Predicted Pr(DV) across beating-justification scores, by co-wives group
 
-```{r, eval = F}
+```{r}
 new_score <- expand.grid(
-  dv_justify_score = 0:5,
-  cowives_cat = levels(analysis_df$cowives_cat),
-  v106 = typical_v106,
-  v190 = typical_v190,
-  v025 = typical_v025
+  beating_justified_score = 0:5,
+  cowives_cat = levels(dhs_surv$variables$cowives_cat),
+  education = typical_v106,
+  wealth = typical_v190,
+  residence = typical_v025,
+  contraception_dec = typical_contraception_dec
 )
 
 new_score$pred_p <- predict(m1, newdata = new_score, type = "response")
 
-ggplot(new_score, aes(x = dv_justify_score, y = pred_p,
+ggplot(new_score, aes(x = beating_justified_score, y = pred_p,
                       group = cowives_cat, linetype = cowives_cat)) +
   geom_line(linewidth = 1) +
   geom_point(size = 2) +
@@ -1242,15 +1244,16 @@ ggplot(new_score, aes(x = dv_justify_score, y = pred_p,
   labs(
     x = "DV justification score (0–5)",
     y = "Predicted probability of any DV",
-    title = "Predicted Pr(any DV) across DV-justification scores",
-    subtitle = paste0(
-      "Score = number of justification items agreed with; held typical: v106=", typical_v106,
-      ", v190=", typical_v190, ", v025=", typical_v025
-    ),
+    title = "Predicted Pr(any DV) across beating-justification scores",
+    subtitle = paste0(),
     linetype = "Co-wives group"
   ) +
   theme_minimal()
 ```
 
-This plot shows how predicted DV probability changes as the DV-justification score increases from 0 to 5, separately for each co-wives group, again holding other covariates constant. All lines trend upward, meaning higher justification scores correspond to higher predicted DV probability. The lines are fairly similar across co-wives groups, suggesting the relationship between score and DV is broadly consistent across these groups, which aligns with the modest per-point odds ratio of about 1.05.
+This plot shows how predicted DV probability changes as the DV-justification score increases from 0 to 5, separately for each co-wives group, again holding other covariates constant at the typical values described above. All lines trend upward, meaning higher justification scores correspond to higher predicted DV probability. The lines are fairly similar across co-wives groups, suggesting the relationship between score and DV is broadly consistent across these groups, which aligns with the odds ratio of about 1.05 from the model.  
+
+# Closing  
+
+In this document, we demonstrated how to take raw DHS data to an interpretable form by cleaning it, manipulating it, visualizing it, and modeling it. This is one example of a group of variables, however, this framework can be applied to any outcome, predictor, and covariate of interest in the DHS data. All code can be adapted to different variable names. The key is to carefully define your variables, understand the model outputs, and use visualizations to communicate findings effectively. 
 
