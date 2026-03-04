@@ -37,7 +37,7 @@ Learn how to read in data to your R environment and create a subset according to
 
 ### 2) Describe Your Data
 
-Learn how to summarize and visualize your data. Learn how to use sampling weights and stratification to present your summaries. Learn how to create new variables from existing ones and merge with other datasets. 
+Learn how to summarize and visualize your data. Learn how to use sampling weights and stratification to present your summaries. Learn how to create new variables from existing ones and merge with other datasets.
 
 ### 3) Model Your Data
 
@@ -89,11 +89,11 @@ dhs$v744a[[2]]
 
 # 2) Describe Your Data
 
-DHS data is survey data, meaning it comes from a sample of the population we desire to make inferences on, but we cannot survey every individual in the population. To account for this, we use sampling weights. Each individual is assigned a sampling weight that reflects how many people in the population that individual represents. When we use these weights in our analysis, we can make estimates that are more representative of the population. In this section, we will demonstrate how to use sampling weights to create weighted tables and plots. We will also show how to create new variables from existing ones and how to merge with other datasets.  
+DHS data is survey data, meaning it comes from a sample of the population we desire to make inferences on, but we cannot survey every individual in the population. To account for this, we use sampling weights. Each individual is assigned a sampling weight that reflects how many people in the population that individual represents. When we use these weights in our analysis, we can make estimates that are more representative of the population. In this section, we will demonstrate how to use sampling weights to create weighted tables and plots. We will also show how to create new variables from existing ones and how to merge with other datasets.
 
-## Sampling Weights  
+## Sampling Weights
 
-First, we need to set up our sampling weight variable by dividing it by 1,000,000 as DHS protocol states. THen we can use the svydesign() function to specify the survey design, which includes the primary sampling unit (PSU), strata, and weights. The PSU is the cluster variable (v001) and the weights are in the variable v005. In this survey, clusters are a group of 20-30 households in the same region. 
+First, we need to set up our sampling weight variable by dividing it by 1,000,000 as DHS protocol states. THen we can use the svydesign() function to specify the survey design, which includes the primary sampling unit (PSU), strata, and weights. The PSU is the cluster variable (v001) and the weights are in the variable v005. In this survey, clusters are a group of 20-30 households in the same region.
 
 ```{r}
 dhs$v005 <- dhs$v005 / 1000000 # rescale weights to be on the order of 1 instead of 1 million
@@ -106,7 +106,7 @@ dhs_surv <- svydesign(
 )
 ```
 
-Now that we have set up our survey design, we will introduce the variables used in our analysis and demonstrate how to create weighted tables and plots. 
+Now that we have set up our survey design, we will introduce the variables used in our analysis and demonstrate how to create weighted tables and plots.
 
 ## Outcomes
 
@@ -136,7 +136,7 @@ kable(svytable(~d105d, design = dhs_surv) %>%
   round(digits = 2), col.names = c("Spouse ever kicked or dragged", "Percent"))
 ```
 
-We can also present this information in a plot. 
+We can also present this information in a plot.
 
 ```{r, echo = F, fig.show = "hide"}
 dhs$d105d_factor <- as_factor(dhs$d105d) # convert to factor variable to get the labels for the bar plot
@@ -162,31 +162,7 @@ ggplot(dhs_df, aes(x = d105d, y = Freq)) +
   theme(axis.text.x = element_text( hjust = 1))
 ```
 
-
-Since we have several variables representing domestic violence, we can combine them to create a single binary variable indicating any physical domestic violence:  
-
-```{r, echo = F}
-# restrict analysis to people who answered at least one of the domestic violence questions (i.e. those who have a value of 0 or 1 for at least one of the questions)
-dhs <- dhs %>%
-  filter(!is.na(d105a) | !is.na(d105b) | !is.na(d105c) | !is.na(d105d) | !is.na(d105e) | !is.na(d105f) | 
-           !is.na(d105g) | !is.na(d105h) | !is.na(d105i) | !is.na(d105j) | !is.na(d105k) |
-           !is.na(d105l) | !is.na(d105m) | !is.na(d105n) | !is.na(d106) | !is.na(d107) |
-           !is.na(d108))
-
-dhs$any_domestic_violence <- case_when(
-  dhs$d105a > 0 | dhs$d105b > 0 | dhs$d105c > 0 | dhs$d105d > 0 | dhs$d105e > 0 | dhs$d105f > 0 | 
-    dhs$d105g > 0 | dhs$d105h > 0 | dhs$d105i > 0 | dhs$d105j > 0 | dhs$d105k > 0 |
-    dhs$d105l > 0 | dhs$d105m > 0 | dhs$d105n > 0 | dhs$d106 > 0 | dhs$d107 > 0 |
-    dhs$d108 > 0 ~ 1,
-  dhs$d105a == 0 & dhs$d105b == 0 & dhs$d105c == 0 & dhs$d105d == 0 & dhs$d105e == 0 & dhs$d105f == 0 & 
-    dhs$d105g == 0 & dhs$d105h == 0 & dhs$d105i == 0 & dhs$d105j == 0 & dhs$d105k == 0 &
-    dhs$d105l == 0 & dhs$d105m == 0 & dhs$d105n == 0 & dhs$d106 == 0 & dhs$d107 == 0 &
-    dhs$d108 == 0 ~ 0,
-  TRUE ~ NA_real_
-)
-# if any of the answers are 0 = never, set to zero. otherwise set to 1 (domestic violence present)
-```
-
+Since we have several variables representing domestic violence, we can combine them to create a single binary variable indicating any physical domestic violence:
 
 ```{r, echo = F, eval = T}
 # List of DV items to consider (only keep those that exist in this file)
@@ -233,19 +209,19 @@ dhs_surv <- dhs_surv %>%
   )
 ```
 
-After creating this binary variable, we will filter out any observations with a value of NA for this variable, which indicates that they were not asked any of the domestic violence questions and therefore we cannot classify them as having experienced domestic violence or not. 
+After creating this binary variable, we will filter out any observations with a value of NA for this variable, which indicates that they were not asked any of the domestic violence questions and therefore we cannot classify them as having experienced domestic violence or not.
 
 ```{r}
 dhs_surv <- dhs_surv %>% filter(!is.na(any_domestic_violence))
 ```
 
-
 Now we can print a table showing what percent of women experienced any domestic violence according to this variable:
+
 ```{r, echo = F, results = 'hide'}
 table(dhs$any_domestic_violence)
 ```
 
-```{r, echo = F, warning = F}
+```{r, warning = F}
 # tabulate a survey weighted table for proportion of women experiencing any domestic violence
 dhs_surv %>% 
   summarise(prop_any_dv = survey_mean(any_domestic_violence, na.rm = TRUE, vartype = NULL)) %>%
@@ -254,16 +230,14 @@ dhs_surv %>%
   kable(col.names = c("Percent experiencing any domestic violence (%)"))
 ```
 
-
 **2. Contraceptive Use** - variable code V312. This categorical variable provides information on contraceptive method.
 
 ```{r}
 dhs$v312[[2]]
 ```
 
-Again, we can make this table with percentages to show the distribution of contraceptive use:  
-
-```{r, warning = F}
+```{r, echo = F, warning = F}
+#Again, we can make this table with percentages to show the distribution of contraceptive use:  
 kable(svytable(~v312, design = dhs_surv) %>%
   prop.table() %>%
   { . * 100 } %>%
@@ -271,6 +245,7 @@ kable(svytable(~v312, design = dhs_surv) %>%
 ```
 
 To explore what proportion of women use any contraception, we can create a new binary variable indicating any contraception use:
+
 ```{r}
 dhs_surv <- as_survey_design(dhs_surv)
 dhs_surv <- dhs_surv %>% mutate(contraception_use = case_when(
@@ -279,7 +254,6 @@ dhs_surv <- dhs_surv %>% mutate(contraception_use = case_when(
   ))
 ```
 
-
 ```{r, echo = F}
 dhs$contraception_use <- case_when(
   dhs$v312 > 0 ~ 1,
@@ -287,7 +261,7 @@ dhs$contraception_use <- case_when(
   ) 
 ```
 
-We can again make a bar plot to show the most common contraception choices by excluding those who didn't use:
+We can again make a bar plot to show the most common contraception choices among those who use contraception:
 
 ```{r}
 dhs_surv <- dhs_surv %>% mutate(v312_factor = as_factor(v312)) # convert to factor variable to get the labels for the bar plot
@@ -295,10 +269,11 @@ dhs_surv <- dhs_surv %>% mutate(v312_factor = as_factor(v312)) # convert to fact
 # create bar plot
 ggplot(dhs_surv %>% filter(contraception_use == 1),
        aes(x = fct_infreq(v312_factor))) +
-  geom_bar() +
+  geom_bar(aes(y = after_stat(count/sum(count)))) + # Calculate percentages
+  scale_y_continuous(labels = scales::percent) +    # Format y-axis as %
   labs(
     x = "Current contraceptive method",
-    y = "Count",
+    y = "Percent",
     title = "Current contraceptive method") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) #rotate x axis labels
 ```
@@ -316,25 +291,24 @@ ggplot(dhs %>% filter(contraception_use == 1),
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) #rotate x axis labels
 ```
 
-We can see that the majority of women use no contraception, and among those which do, only the pill, injections, and implants seem to be popular. Therefore, we can 
-
 ## Predictors
 
-**1. Number of co-wives** - variable code V505. This continuous variable tells us how many other wives a woman's husband has. The value of 98 for this variable indicates "don't know." We will remove those with a value of 98 for this variable from our analysis.
+**1. Number of co-wives** - variable code V505. This continuous variable tells us how many other wives a woman's husband has.
+
+The value of 98 for this variable indicates "don't know." We will remove those with a value of 98 for this variable from our analysis.
 
 ```{r}
 dhs$v505[[2]]
 
-# remove those with a value of 98 for this variable from our analysis
+# remove those with a value of 98 for this variable from our analysis, or those directly coded as 'NA'
 dhs_surv <- dhs_surv %>%
-  filter(v505 != 98)
+  filter(v505 != 98, !is.na(v505))
 ```
 
 ```{r, echo = F}
 dhs <- dhs %>%
   filter(v505 != 98)
 ```
-
 
 For this continuous variable, we can use the summary command to get a sense of the distribution of this variable in our data.
 
@@ -343,6 +317,8 @@ summary(dhs_surv$variables$v505)
 ```
 
 Here, we see that the mean number of other wives 0.38 and the maximum is 5.
+
+We can also create a table to show the distribution of number of co-wives in our data.
 
 ```{r, warning = F}
 kable(svytable(~v505, design = dhs_surv) %>%
@@ -355,12 +331,14 @@ We can now create an exploratory histogram to visualize the distribution of this
 
 ```{r, warning = F}
 ggplot(dhs_surv, aes(x = v505)) +
-  geom_histogram(binwidth = 1) + 
+  geom_histogram(aes(y = after_stat(count / sum(count))), binwidth = 1) +
   labs(
     x = "Number of co-wives",
-    y = "Frequency",
-    title = "Distribution of number of co-wives") +
-  scale_x_continuous(breaks = 0:5) 
+    y = "Percent",
+    title = "Distribution of number of co-wives"
+  ) +
+  scale_x_continuous(breaks = 0:5) +
+  scale_y_continuous(labels = scales::percent)
 ```
 
 **2. Contraception decisions** - variable code V822. This categorical variable provides data on wives feeling justified to ask their husbands to use condoms if they have an STI.
@@ -384,7 +362,6 @@ dhs_surv <- dhs_surv %>%
 dhs <- dhs %>%
   filter(v822 != 8)
 ```
-
 
 We can again use a bar plot to visualize the response proportions for this variable.
 
@@ -412,7 +389,7 @@ ggplot(dhs, aes(x = v822_factor)) +
   )
 ```
 
-**3. Women endorsing statements that beating is justified** - variable codes (V744A-E). These binary variables indicate whether or not a woman believes her husband is justified in hitting her under certain circumstances, for example, when she goes out without telling him. 
+**3. Women endorsing statements that beating is justified** - variable codes (V744A-E). These binary variables indicate whether or not a woman believes her husband is justified in hitting her under certain circumstances, for example, when she goes out without telling him.
 
 ```{r}
 dhs$v744a[[2]]
@@ -432,8 +409,7 @@ dhs <- dhs %>%
   filter(v744a != 8 & v744b != 8 & v744c != 8 & v744d != 8 & v744e != 8)
 ```
 
-
-We can plot the proportion agreeing with each of the statements. 
+We can plot the proportion agreeing with each of the statements.
 
 ```{r, eval = T, echo = F, fig.show = "hide"}
 vars <- c("v744a","v744b","v744c","v744d","v744e")
@@ -498,7 +474,7 @@ ggplot(plot_data_surv, aes(x = statement, y = percent_agree)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-We can then create an indicator variable showing agreement with any of the statements and create a combined score that indicates how many of the statements a woman agrees with. 
+We can then create an indicator variable showing agreement with any of the statements and create a combined score that indicates how many of the statements a woman agrees with.
 
 ```{r, echo = F}
 dhs <- dhs %>%
@@ -561,24 +537,25 @@ kable(svytable(~beating_justified_score, design = dhs_surv) %>%
   round(digits = 2), col.names = c("Beating justified score", "Percent"))
 ```
 
-
 We can also plot the score:
 
 ```{r, echo = F, fig.show = "hide"}
 ggplot(dhs, aes(x = beating_justified_score)) +
-  geom_bar() +
+  geom_bar(aes(y = after_stat(count / sum(count)))) +
   scale_x_continuous(breaks = 0:5) +
+  scale_y_continuous(labels = scales::percent) +
   labs(
     x = "Score (Number of statements agreed with)",
-    y = "Count",
+    y = "Percent",
     title = "Distribution of Beating Justified Score"
   )
 ```
 
 ```{r}
 ggplot(dhs_surv, aes(x = beating_justified_score)) +
-  geom_bar() +
+  geom_bar(aes(y = after_stat(count / sum(count)))) +
   scale_x_continuous(breaks = 0:5) +
+  scale_y_continuous(labels = scales::percent) +
   labs(
     x = "Score (Number of statements agreed with)",
     y = "Count",
@@ -586,8 +563,7 @@ ggplot(dhs_surv, aes(x = beating_justified_score)) +
   )
 ```
 
-
-**4. Man present and/or listening during interview** - variable codes (V812 & V813). This categorical variable asks the survey respondent if their husband (V812) or another man (V813) is either not present, present but not listening, or present and listening during the interview.  
+**4. Man present and/or listening during interview** - variable codes (V812 & V813). This categorical variable asks the survey respondent if their husband (V812) or another man (V813) is either not present, present but not listening, or present and listening during the interview.
 
 ```{r}
 dhs$v812[[2]]
@@ -613,7 +589,6 @@ kable(svytable(~v813, design = dhs_surv) %>%
   round(digits = 2), col.names = c("Man listening", "Percent"))
 ```
 
-
 We can now create a new variable indicating whether *any man* was listening
 
 ```{r, echo = F}
@@ -632,14 +607,13 @@ dhs_surv <- dhs_surv %>% mutate(man_listening = case_when(
 ))
 ```
 
-
 ## Stratified Variable Plots
 
-In this section, we will demonstrate how to visualize data from two variables in one plot. This is useful for exploring whether the distribution of one variable differs across different groups defined by another variable. This is also important for understanding effect modification when we get to modeling our data in the next section 
+In this section, we will demonstrate how to visualize data from two variables in one plot. This is useful for exploring whether the distribution of one variable differs across different groups defined by another variable. This is also important for understanding effect modification when we get to modeling our data in the next section.
 
-**Plotting Belief that Beating is Justified by Man Listening Status** 
+**Plotting Belief that Beating is Justified by Man Listening Status**
 
-We might hypothesize that women change their answers to questions about whether or not beating is justified depending on whether a man was present, perhaps to avoid conflict or to conform to social norms. We can therefore use stratified plots to visually assess whether the proportion of women saying beating is justified would be different depending on if a man was listening or not. 
+We might hypothesize that women change their answers to questions about whether or not beating is justified depending on whether a man was present, perhaps to avoid conflict or to conform to social norms. We can therefore use stratified plots to visually assess whether the proportion of women saying beating is justified would be different depending on if a man was listening or not.
 
 We can first prepare the dataset by mutating the variables to be factors with labels and filtering out any missing data for these variables.
 
@@ -660,7 +634,7 @@ plot_dhs_surv <- dhs_surv %>% mutate(
   filter(!is.na(man_listening), !is.na(anybeating_justified))
 ```
 
-We can then make the plot using ggplot
+We can then make a plot of proportion agreeing that beating is justified stratified by man listening status.
 
 ```{r, echo = F, fig.show = "hide"}
 library(ggplot2) 
@@ -688,9 +662,7 @@ ggplot(plot_dhs_surv, aes(x = man_listening, fill = anybeating_justified)) +
   )
 ```
 
-
-We can see that more women agreed with at least one statement that beating is justified when a man was listening compared to when no men were listening. This is an example of how we can use stratification to explore differences in the distribution of a variable across different groups. We can also use stratification to explore differences in the distribution of our outcomes across different groups, which we will see in the next section when we model our data.  
-
+This is an example of how we can use stratification to explore differences in the distribution of a variable across different groups. We can also use stratification to explore differences in the distribution of our outcomes across different groups, which we will see in the next section when we model our data.
 
 ## Merging with Other Datasets
 
@@ -739,7 +711,7 @@ ggplot(merged_data, aes(x = UN_Population_Density_2010)) +
     ylim(0, 120)
 ```
 
-The advantage of merging datasets is that we can now directly tabulate or plot variables together from each of the datasets. Here, we create a table to show a potential relationship between number of co-wives and population density, since we may hypothesize that population density is related to the prevalence of polygamy. We see that population density seems to decrease as the number of co-wives increases, but we must be cautious to draw conclusions given that there are much fewer observations with 3+ co-wives. 
+The advantage of merging datasets is that we can now directly tabulate or plot variables together from each of the datasets. Here, we create a table to show a potential relationship between number of co-wives and population density, since we may hypothesize that population density is related to the prevalence of polygamy. We see that population density seems to decrease as the number of co-wives increases, but we must be cautious to draw conclusions given that there are much fewer observations with 3+ co-wives.
 
 ```{r, warning = F}
 # create survey object with merged data
@@ -761,7 +733,6 @@ kable(merged_surv %>%
   mutate(count = round(unlist(svytable(~v505, design = merged_surv)))), col.names = c("Number of Co-Wives", "Average Population Density", "Count"))
 ```
 
-
 ```{r, echo = F, results = 'hide', warning= F}
 kable(merged_data %>%
   group_by(v505) %>%
@@ -770,35 +741,34 @@ kable(merged_data %>%
   arrange(v505), col.names = c("Number of Co-Wives", "Average Population Density", "Count"))
 ```
 
-
 # 3) Model Your Data
 
 This section demonstrates a simple modeling workflow using DHS data. The goal is to show how to:
 
-1. Create key **predictors** (beating justification score; co-wives categories)
-2. Fit **logistic regression** models (unadjusted vs adjusted)
-3. Present results in two beginner-friendly ways:
-   - **Odds ratios** (forest plot)
-   - **Predicted probabilities** (probability plots)
+1.  Create key **predictors** (beating justification score; co-wives categories)
+2.  Fit **logistic regression** models (unadjusted vs adjusted)
+3.  Present results in two beginner-friendly ways:
+    -   **Odds ratios** (forest plot)
+    -   **Predicted probabilities** (probability plots)
 
 ## What question are these models answering?
 
 These models focus on the domestic violence (DV) outcome and answer:
 
-- **Primary question:** Among women who answered the domestic violence (DV) questions, does agreeing with more beating-justification statements relate to a higher probability of experiencing any DV?
-- **Secondary question:** Do co-wives groups (0 / 1 / 2+) differ in DV risk?
+-   **Primary question:** Among women who answered the domestic violence (DV) questions, does agreeing with more beating-justification statements relate to a higher probability of experiencing any DV?
+-   **Secondary question:** Do co-wives groups (0 / 1 / 2+) differ in DV risk?
 
-> Note: These are **associations** within the DV-module sample, not causal effects. We provide this example with DV as the outcome, but the same framework can be applied to the contraception use outcome or any other binary outcome. 
+> Note: These are **associations** within the DV-module sample, not causal effects. We provide this example with DV as the outcome, but the same framework can be applied to the contraception use outcome or any other binary outcome.
 
-## Step 1 — Examine the DV outcome variable 
+## Step 1 — Examine the DV outcome variable
 
 ### Why this step is needed
 
 Domestic violence is measured by multiple items (`d105a–d105k`, `d106–d108`). In Section 2, we created a variable called any_domestic_violence according to the following coding:
 
-* **1** = experienced any DV (at least one DV item = 1)
-* **0** = answered DV items and none were 1
-* removed those with DV items missing (not in module / not asked)
+-   **1** = experienced any DV (at least one DV item = 1)
+-   **0** = answered DV items and none were 1
+-   removed those with DV items missing (not in module / not asked)
 
 ```{r, warning = F}
 kable(table(dhs_surv$variables$any_domestic_violence), col.names = c("Any DV", "Count"))
@@ -829,12 +799,11 @@ model_df <- dhs %>%
 table(model_df$any_dv01, useNA = "ifany")
 ```
 
-
 ## Step 2 — Examine the Beating-justification score (0–5) predictor
 
 ### What is a score variable?
 
-In section 2, we created a variable called 'beating_justified_score,' which counts how many of the beating-justification questions the respondent agreed with (0–5).  
+In section 2, we created a variable called 'beating_justified_score,' which counts how many of the beating-justification questions the respondent agreed with (0–5).
 
 ```{r, echo = F, resuts = 'hide'}
 # DV justification items (5 questions)
@@ -861,8 +830,7 @@ summary(model_df$dv_justify_score)
 summary(dhs_surv$variables$beating_justified_score)
 ```
 
-
-The DV-justification score ranges from 0 to 5, with a median of 2 and a mean of about 2.12. In plain terms, a typical respondent agreed with around two of the five beating-justification statements. Because the score covers the full range (0–5), it is meaningful to examine how DV risk changes as the score increases.
+The beating justification score ranges from 0 to 5, with a median of 2 and a mean of about 2.097. In plain terms, a typical respondent agreed with around two of the five beating-justification statements. Because the score covers the full range (0–5), it is meaningful to examine how DV risk changes as the score increases.
 
 ## Step 3 — Collapse co-wives into stable categories (0 / 1 / 2+)
 
@@ -870,9 +838,9 @@ The DV-justification score ranges from 0 to 5, with a median of 2 and a mean of 
 
 Rare categories (e.g., 4 or 5 co-wives) can cause unstable estimates and convergence warnings. Referring to Section 2, we have few data points with 3+ co-wives, so we can collapse the categories:
 
-* 0 co-wives
-* 1 co-wife
-* 2+ co-wives
+-   0 co-wives
+-   1 co-wife
+-   2+ co-wives
 
 ```{r, echo = F}
 model_df <- model_df %>%
@@ -901,7 +869,6 @@ dhs_surv <- dhs_surv %>%
     cowives_cat = factor(cowives_cat)   # make it a factor for modeling
   )
 ```
-
 
 ```{r, echo = F, results = 'hide'}
 ## Step 4 — Create the analysis dataset used in models
@@ -933,15 +900,14 @@ nrow(analysis_df)
 
 ### What is logistic regression?
 
-**Logistic regression** is used for binary outcomes (0/1).
-It estimates the association between predictors and the **log-odds** of the outcome. Log-odds is the log of the probability that the outcome equals 1 divided by the probability that the outcome equals 0:  
+**Logistic regression** is used for binary outcomes (0/1). It estimates the association between predictors and the **log-odds** of the outcome. Log-odds is the log of the probability that the outcome equals 1 divided by the probability that the outcome equals 0:
 
 $log.odds = log(\frac{P(Y=1)}{P(Y=0)})$
 
 ### Unadjusted vs adjusted models
 
-* **Unadjusted model:** DV ~ beating-justification score (simple association); in an unadjusted model we have our primary predictor of interest but do not include any other variables in the model. 
-* **Adjusted model:** DV ~ beating-justification score + **number of co-wives + contraceptive-decision + education + wealth + residence (controls)**; in an adjusted model, we include our primary predictor of interest (beating-justification score) and also include other variables that we want to control for in the model. In this case, we are controlling for number of co-wives and contraceptive-decision as additional main predictors, and education (V106), wealth (V190), and residence (V025) as control variables. 
+-   **Unadjusted model:** DV \~ beating-justification score (simple association); in an unadjusted model we have our primary predictor of interest but do not include any other variables in the model.
+-   **Adjusted model:** DV \~ beating-justification score + **number of co-wives + contraceptive-decision + education + wealth + residence (controls)**; in an adjusted model, we include our primary predictor of interest (beating-justification score) and also include other variables that we want to control for in the model. In this case, we are controlling for number of co-wives and contraceptive-decision as additional main predictors, and education (V106), wealth (V190), and residence (V025) as control variables.
 
 ```{r, echo = F}
 # Unadjusted model
@@ -977,21 +943,19 @@ m1 <- svyglm(any_domestic_violence ~ beating_justified_score + contraception_dec
              control = glm.control(maxit = 50))
 ```
 
-
 ## Step 5 — Summarize results as odds ratios (OR) with 95% CI
 
 ### What is an odds ratio (OR)?
 
 An **odds ratio** compares odds between groups:
 
-* OR = 1 → no association
-* OR > 1 → higher odds of DV
-* OR < 1 → lower odds of DV
+-   OR = 1 → no association
+-   OR \> 1 → higher odds of DV
+-   OR \< 1 → lower odds of DV
 
 ### What is a 95% confidence interval?
 
-A **95% CI** gives a plausible range for the true OR.
-If the CI includes 1, the estimate is not clearly different from no association.
+A **95% CI** gives a plausible range for the true OR. If the CI includes 1, the estimate is not clearly different from no association.
 
 ```{r, warning = F}
 # Helper function: convert glm output to OR + Wald 95% CI
@@ -1009,24 +973,24 @@ or_wald <- function(fit){
 kable(or_wald(m0)) 
 ```
 
-**Unadjusted model results (DV ~ beating-justification score)**  
-In the unadjusted logistic regression, each one-point increase in beating-justification score is associated with an odds ratio of 1.05 (95% CI 0.99 to 1.12, p = 0.09). This suggests that agreeing with one additional justification item is linked to about 5% higher odds of reporting any DV, although the evidence is borderline because the confidence interval is very close to 1 and the p-value is above 0.05.
+**Unadjusted model results (DV \~ beating-justification score)**\
+In the unadjusted logistic regression, each one-point increase in beating-justification score is associated with an odds ratio of 1.05 (95% CI 0.99 to 1.12, p = 0.09). This suggests that agreeing with one additional statement that beating is justified is linked to about 5% higher odds of reporting any DV, although the evidence is borderline because the confidence interval is very close to 1 and the p-value is above 0.05.
 
 ```{r, warning = F}
 kable(or_wald(m1))
 ```
 
-**Adjusted model results (DV ~ score + co-wives + controls)**  
+**Adjusted model results (DV \~ score + co-wives + controls)**\
 In the adjusted model (controlling for co-wives group, education, wealth, and residence), the DV-justification score remains very similar: odds ratio 1.05 (95% CI 0.99 to 1.12, p = 0.12). This indicates the association is consistent after adjustment, but still modest and not strongly conclusive in this sample. For co-wives groups, neither 1 vs 0 (OR 1.18, 95% CI 0.90–1.55) nor 2+ vs 0 (OR 0.98, 95% CI 0.59–1.63) shows a clear difference in DV odds because both confidence intervals cross 1. Among the control variables, most estimates of the OR cross 1; one notable exception is Wealth: middle vs poorest (OR 1.55, 95% CI 1.11–2.15), which suggests higher odds for the middle group relative to the poorest in this model.
 
-## Step 6 — Forest plot of adjusted odds ratios 
+## Step 6 — Forest plot of adjusted odds ratios
 
 This plot summarizes the adjusted model (`m1`) in one figure:
 
-* Points are OR estimates
-* Horizontal lines are 95% CIs
-* The vertical dashed line at OR = 1 indicates no association
-* Labels are converted to readable terms
+-   Points are OR estimates
+-   Horizontal lines are 95% CIs
+-   The vertical dashed line at OR = 1 indicates no association
+-   Labels are converted to readable terms
 
 ```{r, eval = F, echo = F}
 res_m1 <- or_wald(m1) %>%
@@ -1144,7 +1108,7 @@ ggplot(res_m1, aes(x = OR, y = term_label)) +
   scale_x_continuous(breaks = c(1, 2)) +
   coord_cartesian(xlim = c(0.45, xlim_right), clip = "off") +
   labs(
-    title = "Adjusted associations with any DV",
+    title = "Adjusted associations with any domestic violence",
     subtitle = "Reference groups: 0 co-wives, no education, poorest, urban",
     x = "Odds ratio",
     y = NULL
@@ -1158,7 +1122,7 @@ ggplot(res_m1, aes(x = OR, y = term_label)) +
   )
 ```
 
-The forest plot summarizes the adjusted model by showing each odds ratio and its 95% confidence interval relative to the reference groups. The beating-justification score sits slightly above 1, reflecting a small positive association with DV odds. The co-wives estimates are close to 1 with wide confidence intervals, which visually reinforces that the model does not provide strong evidence of differences by co-wives group. The plot is most useful for quickly identifying direction (above or below 1) and uncertainty (how wide the CI is).
+The forest plot summarizes the adjusted model by showing each odds ratio and its 95% confidence interval relative to the reference groups. The beating-justification score sits slightly above 1, reflecting a small positive association with domestic violence odds. The co-wives estimates are close to 1 with wide confidence intervals, which visually reinforces that the model does not provide strong evidence of differences by co-wives group. The plot is most useful for quickly identifying direction (above or below 1) and uncertainty (how wide the CI is).
 
 ## Step 7 — Predicted probabilities
 
@@ -1166,9 +1130,9 @@ The forest plot summarizes the adjusted model by showing each odds ratio and its
 
 Odds ratios can be hard for to interpret. Predicted probabilities answer:
 
-> “Given certain characteristics, what is the model-estimated probability of DV?”
+> “Given certain characteristics, what is the model-estimated probability of domestic violence?”
 
-We may want to predict the probability of DV based on a certain number of co-wives or beating justification score. To do so, we can set our other control variables (education, wealth, residence) to “typical” values (most common levels). 
+We may want to predict the probability of domestic violence based on a certain number of co-wives or beating justification score. To do so, we can set our other control variables (education, wealth, residence) to “typical” values (most common levels).
 
 ### Step 7a — Define typical covariate values used for predictions
 
@@ -1189,9 +1153,9 @@ cat("  Beating-justification score (median):", typical_score, "\n")
 cat("  Contraception decision:", typical_contraception_dec, "\n")
 ```
 
-Here, we have created a hypothetical profile of a woman with the most common education level (no education), wealth index (poorest), residence (urban), and contraception decision (yes), and a typical beating-justification score (median of 2). We will use this profile to predict the probability of DV across different co-wives groups, while holding these other characteristics constant.
+Here, we have created a hypothetical profile of a woman with the most common education level (no education), wealth index (poorest), residence (urban), and contraception decision (yes), and a typical beating-justification score (median of 2). We will use this profile to predict the probability of domestic violence across different co-wives groups, while holding these other characteristics constant.
 
-### Step 7b — Predicted Pr(DV) by co-wives group (holding others constant)
+### Step 7b — Predicted Pr(domestic violence) by co-wives group (holding others constant)
 
 ```{r}
 newdat <- expand.grid(
@@ -1212,16 +1176,16 @@ ggplot(newdat, aes(x = cowives_cat, y = pred_p)) +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0, NA)) +
   labs(
     x = "Number of co-wives (0 / 1 / 2+)",
-    y = "Predicted probability of any DV",
-    title = "Predicted Pr(any DV) by co-wives group",
+    y = "Predicted probability of any domestic violence",
+    title = "Predicted Pr(any domestic violence) by co-wives group",
     subtitle = paste0("")
     ) +
   theme_minimal()
 ```
 
-This plot translates the adjusted model into predicted probabilities for each co-wives category while holding other covariates at “typical” values explained above and fixing the beating-justification score at its median (2). The predicted probabilities are all in the mid-to-high 30% to low 40% range, and the differences between groups are relatively small. This matches the regression results: co-wives group does not show a strong, clearly separated association with DV in the adjusted model.
+This plot translates the adjusted model into predicted probabilities for each co-wives category while holding other covariates at “typical” values explained above and fixing the beating-justification score at its median (2). The predicted probabilities are all in the mid-to-high 30% to low 40% range, and the differences between groups are relatively small. This matches the regression results: co-wives group does not show a strong, clearly separated association with domestic violence in the adjusted model.
 
-### Step 7c — Predicted Pr(DV) across beating-justification scores, by co-wives group
+### Step 7c — Predicted Pr(domestic violence) across beating-justification scores, by co-wives group
 
 ```{r}
 new_score <- expand.grid(
@@ -1242,18 +1206,17 @@ ggplot(new_score, aes(x = beating_justified_score, y = pred_p,
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0, NA)) +
   scale_x_continuous(breaks = 0:5) +
   labs(
-    x = "DV justification score (0–5)",
-    y = "Predicted probability of any DV",
-    title = "Predicted Pr(any DV) across beating-justification scores",
+    x = "domestic violence justification score (0–5)",
+    y = "Predicted probability of any domestic violence",
+    title = "Predicted Pr(any domestic violence) across beating-justification scores",
     subtitle = paste0(),
     linetype = "Co-wives group"
   ) +
   theme_minimal()
 ```
 
-This plot shows how predicted DV probability changes as the DV-justification score increases from 0 to 5, separately for each co-wives group, again holding other covariates constant at the typical values described above. All lines trend upward, meaning higher justification scores correspond to higher predicted DV probability. The lines are fairly similar across co-wives groups, suggesting the relationship between score and DV is broadly consistent across these groups, which aligns with the odds ratio of about 1.05 from the model.  
+This plot shows how predicted domestic violence probability changes as the beating-justification score increases from 0 to 5, separately for each co-wives group, again holding other covariates constant at the typical values described above. All lines trend upward, meaning higher justification scores correspond to higher predicted domestic violence probability. The lines are fairly similar across co-wives groups, suggesting the relationship between score and domestic violence is broadly consistent across these groups, which aligns with the odds ratio of about 1.05 from the model.
 
-# Closing  
+# Closing
 
-In this document, we demonstrated how to take raw DHS data to an interpretable form by cleaning it, manipulating it, visualizing it, and modeling it. This is one example of a group of variables, however, this framework can be applied to any outcome, predictor, and covariate of interest in the DHS data. All code can be adapted to different variable names. The key is to carefully define your variables, understand the model outputs, and use visualizations to communicate findings effectively. 
-
+In this document, we demonstrated how to take raw DHS data to an interpretable form by cleaning it, manipulating it, visualizing it, and modeling it. This is one example of a group of variables, however, this framework can be applied to any outcome, predictor, and covariate of interest in the DHS data. All code can be adapted to different variable names. The key is to carefully define your variables, understand the model outputs, and use visualizations to communicate findings effectively.
