@@ -662,7 +662,7 @@ ggplot(plot_dhs_surv, aes(x = man_listening, fill = anybeating_justified)) +
   )
 ```
 
-This is an example of how we can use stratification to explore differences in the distribution of a variable across different groups. We can also use stratification to explore differences in the distribution of our outcomes across different groups, which we will see in the next section when we model our data.
+This is an example of how we can use stratification to explore differences in the distribution of a variable across different groups. Note here that the data for the man-listening variable is extremely sparse and we only have 4 observations which indicated there was a man listening during the interview. In practice, we would not want to use this variable because we have very little data for the man listening category, but we left it in here for demonstration purposes. In cases where we have more data, this type of plot can be very useful for visually assessing differences in the distribution of an outcome across different groups defined by a predictor variable.
 
 ## Merging with Other Datasets
 
@@ -974,7 +974,7 @@ kable(or_wald(m0))
 ```
 
 **Unadjusted model results (DV \~ beating-justification score)**\
-In the unadjusted logistic regression, each one-point increase in beating-justification score is associated with an odds ratio of 1.05 (95% CI 0.99 to 1.12, p = 0.09). This suggests that agreeing with one additional statement that beating is justified is linked to about 5% higher odds of reporting any DV, although the evidence is borderline because the confidence interval is very close to 1 and the p-value is above 0.05.
+In the unadjusted logistic regression, each one-point increase in beating-justification score is associated with an odds ratio of 1.05 (95% CI 0.99 to 1.12, p = 0.09). This suggests that agreeing with one additional statement that beating is justified is linked to about 5% higher odds of reporting any DV, although the p-value is above 0.05 so we do not have enough statistical evidence to conclude that there is an association between the beating-justification score and DV in this sample. 
 
 ```{r, warning = F}
 kable(or_wald(m1))
