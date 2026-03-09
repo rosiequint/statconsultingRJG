@@ -41,7 +41,7 @@ Learn how to summarize and visualize your data. Learn how to use sampling weight
 
 ### 3) Model Your Data
 
-Learn how to conduct epidemiologic analyses using linear and logistic regression and hypothesis testing.
+Learn how to conduct epidemiologic analyses using logistic regression and confidence intervals. 
 
 # 1) Prepare Your Data
 
