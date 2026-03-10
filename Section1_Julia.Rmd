@@ -118,11 +118,6 @@ dhs$d105d[[2]]
 
 Because these domestic violence variables come from survey questions asked only to women in union/are married (V502), we will restrict our data to the subset of women who are married for the remainder of the analysis:
 
-```{r, echo = F}
-dhs <- dhs %>%
-  filter(v502 == 1)
-```
-
 ```{r}
 dhs_surv <- subset(dhs_surv, v502 == 1)
 ```
@@ -138,18 +133,6 @@ kable(svytable(~d105d, design = dhs_surv) %>%
 
 We can also present this information in a plot.
 
-```{r, echo = F, fig.show = "hide"}
-dhs$d105d_factor <- as_factor(dhs$d105d) # convert to factor variable to get the labels for the bar plot
-
-ggplot(dhs, aes(x = d105d_factor)) +
-  geom_bar() +
-  labs(
-    x = "Response",
-    y = "Count",
-    title = "Spouse ever kicked or dragged") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
 ```{r}
 dhs_df <- as.data.frame(svytable(~d105d, design = dhs_surv))
 ggplot(dhs_df, aes(x = d105d, y = Freq)) +
@@ -163,29 +146,6 @@ ggplot(dhs_df, aes(x = d105d, y = Freq)) +
 ```
 
 Since we have several variables representing domestic violence, we can combine them to create a single binary variable indicating any physical domestic violence:
-
-```{r, echo = F, eval = T}
-# List of DV items to consider (only keep those that exist in this file)
-dv_vars <- c(paste0("d105", letters[1:11]), "d106", "d107", "d108")  # d105a-k + d106-108
-dv_vars <- intersect(dv_vars, names(dhs))                            # safety: keep only variables that exist
-
-# Create the binary DV outcome
-dhs <- dhs %>%
-  mutate(across(all_of(dv_vars), as.numeric)) %>%                     # ensure DV items are numeric
-  mutate(
-    any_domestic_violence = case_when(
-      # If any DV item equals 1, classify as DV experienced
-      rowSums(across(all_of(dv_vars), ~ .x == 1), na.rm = TRUE) > 0 ~ 1,
-      # If at least one DV item is observed (not NA) and none are 1, classify as no DV
-      rowSums(across(all_of(dv_vars), ~ !is.na(.x)), na.rm = TRUE) > 0 ~ 0,
-      # If all DV items are missing, keep as NA (not in module / not asked)
-      TRUE ~ NA_real_
-    )
-  )
-
-# Sanity check: must see both 0 and 1 for modeling
-# table(model_df$any_dv01, useNA = "ifany")
-```
 
 ```{r}
 dhs_surv <- as_survey_design(dhs_surv)
@@ -217,9 +177,7 @@ dhs_surv <- dhs_surv %>% filter(!is.na(any_domestic_violence))
 
 Now we can print a table showing what percent of women experienced any domestic violence according to this variable:
 
-```{r, echo = F, results = 'hide'}
-table(dhs$any_domestic_violence)
-```
+
 
 ```{r, warning = F}
 # tabulate a survey weighted table for proportion of women experiencing any domestic violence
@@ -236,13 +194,6 @@ dhs_surv %>%
 dhs$v312[[2]]
 ```
 
-```{r, echo = F, warning = F}
-#Again, we can make this table with percentages to show the distribution of contraceptive use:  
-kable(svytable(~v312, design = dhs_surv) %>%
-  prop.table() %>%
-  { . * 100 } %>%
-  round(digits = 2), col.names = c("Current contraceptive method", "Percent"))
-```
 
 To explore what proportion of women use any contraception, we can create a new binary variable indicating any contraception use:
 
@@ -252,13 +203,6 @@ dhs_surv <- dhs_surv %>% mutate(contraception_use = case_when(
   v312 > 0 ~ 1,
   v312 == 0 ~ 0
   ))
-```
-
-```{r, echo = F}
-dhs$contraception_use <- case_when(
-  dhs$v312 > 0 ~ 1,
-  dhs$v312 == 0 ~ 0
-  ) 
 ```
 
 We can again make a bar plot to show the most common contraception choices among those who use contraception:
@@ -278,18 +222,7 @@ ggplot(dhs_surv %>% filter(contraception_use == 1),
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) #rotate x axis labels
 ```
 
-```{r, echo = F, fig.show = "hide"}
-dhs$v312_factor <- as_factor(dhs$v312) # convert to factor variable to get the labels for the bar plot
 
-ggplot(dhs %>% filter(contraception_use == 1),
-       aes(x = fct_infreq(v312_factor))) +
-  geom_bar() +
-  labs(
-    x = "Current contraceptive method",
-    y = "Count",
-    title = "Current contraceptive method") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) #rotate x axis labels
-```
 
 ## Predictors
 
@@ -303,11 +236,6 @@ dhs$v505[[2]]
 # remove those with a value of 98 for this variable from our analysis, or those directly coded as 'NA'
 dhs_surv <- dhs_surv %>%
   filter(v505 != 98, !is.na(v505))
-```
-
-```{r, echo = F}
-dhs <- dhs %>%
-  filter(v505 != 98)
 ```
 
 For this continuous variable, we can use the summary command to get a sense of the distribution of this variable in our data.
@@ -358,29 +286,12 @@ dhs_surv <- dhs_surv %>%
   filter(v822 != 8)
 ```
 
-```{r, echo = F}
-dhs <- dhs %>%
-  filter(v822 != 8)
-```
-
 We can again use a bar plot to visualize the response proportions for this variable.
 
 ```{r}
 dhs_surv <- dhs_surv %>% mutate(v822_factor = as_factor(v822)) # convert to factor variable to get the labels for the bar plot
 
 ggplot(dhs_surv, aes(x = v822_factor)) +
-  geom_bar() +
-  labs(
-    x = "Response",
-    y = "Count",
-    title = "Wife justified to ask husband to use condom if he has an STI"
-  )
-```
-
-```{r, echo = F, fig.show = "hide"}
-dhs$v822_factor <- as_factor(dhs$v822) # convert to factor variable to get the labels for the bar plot
-
-ggplot(dhs, aes(x = v822_factor)) +
   geom_bar() +
   labs(
     x = "Response",
@@ -403,45 +314,7 @@ dhs_surv <- dhs_surv %>%
   filter(v744a != 8 & v744b != 8 & v744c != 8 & v744d != 8 & v744e != 8)
 ```
 
-```{r, echo = F}
-# remove if any of 744a-e are missing
-dhs <- dhs %>%
-  filter(v744a != 8 & v744b != 8 & v744c != 8 & v744d != 8 & v744e != 8)
-```
-
 We can plot the proportion agreeing with each of the statements.
-
-```{r, eval = T, echo = F, fig.show = "hide"}
-vars <- c("v744a","v744b","v744c","v744d","v744e")
- # convert to factor variables to get the labels for the bar plot
-
-# question labels
-question_labels <- sapply(dhs[vars], function(x) attr(x, "label"))
-
-# remove 'beating justified' from the start of the label
-question_labels <- gsub("beating justified if", "", question_labels)
-
-# percent agreeing (value == 1)
-perc_agree <- sapply(dhs[vars], function(x) {
-  mean(x == 1) * 100
-})
-
-# prepare a data frame for plotting
-plot_data <- data.frame(
-  statement = question_labels,
-  percent_agree = perc_agree
-)
-
-ggplot(plot_data, aes(x = statement, y = percent_agree)) +
-  geom_col() +
-  labs(
-    x = "Statement",
-    y = "Percent agreeing",
-    title = "Percent agreeing that beating is justified"
-  ) +
-  ylim(0, 100) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
 
 ```{r}
 vars <- c("v744a","v744b","v744c","v744d","v744e")
@@ -476,26 +349,7 @@ ggplot(plot_data_surv, aes(x = statement, y = percent_agree)) +
 
 We can then create an indicator variable showing agreement with any of the statements and create a combined score that indicates how many of the statements a woman agrees with.
 
-```{r, echo = F}
-dhs <- dhs %>%
-  mutate(
-    anybeating_justified = if_else(
-      if_any(all_of(vars), ~ . == 1),
-      1, 0
-    )
-  )
 
-# make score 
-dhs <- dhs %>%
-  mutate(
-    beating_justified_score = 
-      (v744a == 1) +
-      (v744b == 1) +
-      (v744c == 1) +
-      (v744d == 1) +
-      (v744e == 1)
-  )
-```
 
 ```{r}
 dhs_surv <- dhs_surv %>%
@@ -520,10 +374,6 @@ dhs_surv <- dhs_surv %>%
 
 We can summarise the percentage for whom any beating is justified and the proportion with each score:
 
-```{r, echo = F, results = 'hide'}
-mean(dhs$anybeating_justified) * 100
-round(prop.table(table(dhs$beating_justified_score)), digits = 2)
-```
 
 ```{r, warning = F}
 kable(dhs_surv %>%
@@ -538,18 +388,6 @@ kable(svytable(~beating_justified_score, design = dhs_surv) %>%
 ```
 
 We can also plot the score:
-
-```{r, echo = F, fig.show = "hide"}
-ggplot(dhs, aes(x = beating_justified_score)) +
-  geom_bar(aes(y = after_stat(count / sum(count)))) +
-  scale_x_continuous(breaks = 0:5) +
-  scale_y_continuous(labels = scales::percent) +
-  labs(
-    x = "Score (Number of statements agreed with)",
-    y = "Percent",
-    title = "Distribution of Beating Justified Score"
-  )
-```
 
 ```{r}
 ggplot(dhs_surv, aes(x = beating_justified_score)) +
@@ -571,11 +409,6 @@ dhs$v812[[2]]
 
 First, we can explore the distribution of the two variables: husband listening and other man listening.
 
-```{r, echo = F, results = 'hide'}
-table(dhs$v812) # husband listening
-table(dhs$v813) # other males listening 
-```
-
 ```{r, warning = F}
 # prop table with surv object
 kable(svytable(~v812, design = dhs_surv) %>%
@@ -590,14 +423,6 @@ kable(svytable(~v813, design = dhs_surv) %>%
 ```
 
 We can now create a new variable indicating whether *any man* was listening
-
-```{r, echo = F}
-dhs$man_listening <- case_when(
-  dhs$v812 == 1 | dhs$v813 == 1 ~ 1,
-  dhs$v812 == 0 & dhs$v813 == 0 ~ 0,
-  TRUE ~ NA_real_
-  )
-```
 
 ```{r}
 dhs_surv <- dhs_surv %>% mutate(man_listening = case_when(
@@ -617,15 +442,6 @@ We might hypothesize that women change their answers to questions about whether 
 
 We can first prepare the dataset by mutating the variables to be factors with labels and filtering out any missing data for these variables.
 
-```{r, echo = F}
-plot_df <- dhs %>%
-  mutate(
-    man_listening = factor(man_listening, levels=c(0,1), labels=c("No","Yes")),
-    anybeating_justified = factor(anybeating_justified, levels=c(0,1), labels=c("No","Yes"))
-  ) %>%
-  filter(!is.na(man_listening), !is.na(anybeating_justified))
-```
-
 ```{r}
 plot_dhs_surv <- dhs_surv %>% mutate(
     man_listening = factor(man_listening, levels=c(0,1), labels=c("No","Yes")),
@@ -635,20 +451,6 @@ plot_dhs_surv <- dhs_surv %>% mutate(
 ```
 
 We can then make a plot of proportion agreeing that beating is justified stratified by man listening status.
-
-```{r, echo = F, fig.show = "hide"}
-library(ggplot2) 
-
-ggplot(plot_df, aes(x = man_listening, fill = anybeating_justified)) +
-  geom_bar(position = "fill") +
-  scale_y_continuous(labels = scales::percent_format()) +
-  labs(
-    x = "Men listening",
-    y = "Proportion (unweighted)",
-    fill = "Any beating justified",
-    title = "Any beating justified by men listening"
-  )
-```
 
 ```{r}
 ggplot(plot_dhs_surv, aes(x = man_listening, fill = anybeating_justified)) +
@@ -683,7 +485,7 @@ When merging, it is important to identify the key variable that is present in bo
 Note what the cluster variable is named in each dataset. In the individual recode dataset, the cluster variable is "v001". In the geospatial covariates dataset, the cluster variable is "DHSCLUST". The code below will merge the two datasets and save the new dataset as 'merged_data'. We will specify that we only want to keep the population density variable from the new dataset so we don't add in unnecessary variables to our working environment.
 
 ```{r}
-merged_data <- dhs %>%
+merged_data <- dhs_surv$variables %>%
   left_join(geo %>% select(DHSCLUST, UN_Population_Density_2010), by = c("v001" = "DHSCLUST"))
 ```
 
@@ -733,13 +535,7 @@ kable(merged_surv %>%
   mutate(count = round(unlist(svytable(~v505, design = merged_surv)))), col.names = c("Number of Co-Wives", "Average Population Density", "Count"))
 ```
 
-```{r, echo = F, results = 'hide', warning= F}
-kable(merged_data %>%
-  group_by(v505) %>%
-  summarise(avg_pop_density = mean(UN_Population_Density_2010, na.rm = TRUE),
-            count = n()) %>%
-  arrange(v505), col.names = c("Number of Co-Wives", "Average Population Density", "Count"))
-```
+
 
 # 3) Model Your Data
 
@@ -776,55 +572,12 @@ kable(table(dhs_surv$variables$any_domestic_violence), col.names = c("Any DV", "
 
 After combining the DV items into a single outcome, the analysis sample contains 956 women coded as 0 (no DV) and 738 coded as 1 (any DV). This confirms the outcome has both categories and is suitable for logistic regression. Interpreted descriptively within this DV-module sample, about 44% reported experiencing any DV (738 out of 1,694).
 
-```{r, echo = F, results = 'hide', warning = F}
-# List of DV items to consider (only keep those that exist in this file)
-dv_vars <- c(paste0("d105", letters[1:11]), "d106", "d107", "d108")  # d105a-k + d106-108
-dv_vars <- intersect(dv_vars, names(dhs))                            # safety: keep only variables that exist
-
-# Create the binary DV outcome
-model_df <- dhs %>%
-  mutate(across(all_of(dv_vars), as.numeric)) %>%                     # ensure DV items are numeric
-  mutate(
-    any_dv01 = case_when(
-      # If any DV item equals 1, classify as DV experienced
-      rowSums(across(all_of(dv_vars), ~ .x == 1), na.rm = TRUE) > 0 ~ 1,
-      # If at least one DV item is observed (not NA) and none are 1, classify as no DV
-      rowSums(across(all_of(dv_vars), ~ !is.na(.x)), na.rm = TRUE) > 0 ~ 0,
-      # If all DV items are missing, keep as NA (not in module / not asked)
-      TRUE ~ NA_real_
-    )
-  )
-
-# Sanity check: must see both 0 and 1 for modeling
-table(model_df$any_dv01, useNA = "ifany")
-```
-
 ## Step 2 — Examine the Beating-justification score (0–5) predictor
 
 ### What is a score variable?
 
 In section 2, we created a variable called 'beating_justified_score,' which counts how many of the beating-justification questions the respondent agreed with (0–5).
 
-```{r, echo = F, resuts = 'hide'}
-# DV justification items (5 questions)
-dvj_vars <- c("v744a","v744b","v744c","v744d","v744e")
-dvj_vars <- intersect(dvj_vars, names(model_df))                      # safety: keep only variables that exist
-
-model_df <- model_df %>%
-  mutate(across(all_of(dvj_vars), as.numeric)) %>%                     # ensure numeric
-  mutate(across(all_of(dvj_vars), ~ ifelse(.x %in% c(8, 9), NA_real_, .x))) %>%  # DK/missing -> NA
-  mutate(
-    # Only compute the score if all 5 items are observed; otherwise set to NA
-    dv_justify_score = if_else(
-      rowSums(is.na(across(all_of(dvj_vars)))) == 0,                   # require complete data on all 5 items
-      rowSums(across(all_of(dvj_vars), ~ (.x == 1))),                   # count number of "agree" responses
-      NA_real_
-    )
-  )
-
-# Quick summary of the score distribution
-summary(model_df$dv_justify_score)
-```
 
 ```{r}
 summary(dhs_surv$variables$beating_justified_score)
@@ -842,19 +595,6 @@ Rare categories (e.g., 4 or 5 co-wives) can cause unstable estimates and converg
 -   1 co-wife
 -   2+ co-wives
 
-```{r, echo = F}
-model_df <- model_df %>%
-  mutate(
-    cowives_cat = case_when(
-      is.na(v505) ~ NA_character_,      # missing stays missing
-      v505 == 98 ~ NA_character_,       # 98 = "don't know"
-      v505 == 0 ~ "0",
-      v505 == 1 ~ "1",
-      v505 >= 2 ~ "2+"
-    ),
-    cowives_cat = factor(cowives_cat)   # make it a factor for modeling
-  )
-```
 
 ```{r}
 dhs_surv <- dhs_surv %>%
@@ -870,32 +610,6 @@ dhs_surv <- dhs_surv %>%
   )
 ```
 
-```{r, echo = F, results = 'hide'}
-## Step 4 — Create the analysis dataset used in models
-
-#Logistic regression needs outcome and predictors to be observed.
-#This step creates a clean dataset with complete cases for the model #variables.
-
-analysis_df <- model_df %>%
-  filter(
-    !is.na(any_dv01),
-    !is.na(dv_justify_score),
-    !is.na(cowives_cat),
-    !is.na(v106), !is.na(v190), !is.na(v025)
-  ) %>%
-  mutate(
-    v106 = factor(v106),   # education
-    v190 = factor(v190),   # wealth index
-    v025 = factor(v025)    # urban/rural
-  ) %>%
-  droplevels()
-
-# Optional: check sample size after filtering
-nrow(analysis_df)
-
-#After excluding rows with missing outcome, predictors, or covariates, the final modeling dataset includes 1,694 women. This is a complete-case analysis for the variables used in the models, meaning results apply to this subset with complete information rather than the full DHS file.
-```
-
 ## Step 4 — Fit logistic regression models (unadjusted vs adjusted)
 
 ### What is logistic regression?
@@ -908,19 +622,6 @@ $log.odds = log(\frac{P(Y=1)}{P(Y=0)})$
 
 -   **Unadjusted model:** DV \~ beating-justification score (simple association); in an unadjusted model we have our primary predictor of interest but do not include any other variables in the model.
 -   **Adjusted model:** DV \~ beating-justification score + **number of co-wives + contraceptive-decision + education + wealth + residence (controls)**; in an adjusted model, we include our primary predictor of interest (beating-justification score) and also include other variables that we want to control for in the model. In this case, we are controlling for number of co-wives and contraceptive-decision as additional main predictors, and education (V106), wealth (V190), and residence (V025) as control variables.
-
-```{r, echo = F}
-# Unadjusted model
-m0 <- glm(any_dv01 ~ dv_justify_score,
-          data = analysis_df,
-          family = binomial())
-
-# Adjusted model (small set of covariates for teaching)
-m1 <- glm(any_dv01 ~ dv_justify_score + cowives_cat + v106 + v190 + v025,
-          data = analysis_df,
-          family = binomial(),
-          control = glm.control(maxit = 50))
-```
 
 ```{r}
 # Unadjusted model
@@ -992,69 +693,6 @@ This plot summarizes the adjusted model (`m1`) in one figure:
 -   The vertical dashed line at OR = 1 indicates no association
 -   Labels are converted to readable terms
 
-```{r, eval = F, echo = F}
-res_m1 <- or_wald(m1) %>%
-  filter(term != "(Intercept)") %>%
-  mutate(
-    # Group variables to make the plot easier to read
-    group = case_when(
-      term == "dv_justify_score" ~ "Main predictors",
-      str_detect(term, "^cowives_cat") ~ "Main predictors",
-      TRUE ~ "Controls"
-    ),
-
-    # Human-readable labels
-    term_label = case_when(
-      term == "dv_justify_score" ~ "DV justification score (per +1 item)",
-      term == "cowives_cat1" ~ "Co-wives: 1 vs 0",
-      term == "cowives_cat2+" ~ "Co-wives: 2+ vs 0",
-      term == "v0252" ~ "Residence: rural vs urban",
-      term == "v1061" ~ "Education: primary vs none",
-      term == "v1062" ~ "Education: secondary vs none",
-      term == "v1063" ~ "Education: higher vs none",
-      term == "v1902" ~ "Wealth: poorer vs poorest",
-      term == "v1903" ~ "Wealth: middle vs poorest",
-      term == "v1904" ~ "Wealth: richer vs poorest",
-      term == "v1905" ~ "Wealth: richest vs poorest",
-      TRUE ~ term
-    ),
-
-    # Text column (OR with CI) for readability
-    or_text = sprintf("%.2f (%.2f, %.2f)", OR, OR_low, OR_high)
-  ) %>%
-  arrange(group, desc(abs(log(OR)))) %>%
-  mutate(
-    term_label = fct_inorder(term_label),
-    group = factor(group, levels = c("Main predictors", "Controls"))
-  )
-
-# Extend x-axis so text can fit on the right
-xmax <- max(res_m1$OR_high, na.rm = TRUE)
-xlim_right <- xmax * 1.35
-
-ggplot(res_m1, aes(x = OR, y = term_label)) +
-  geom_vline(xintercept = 1, linetype = 2) +
-  geom_errorbar(aes(xmin = OR_low, xmax = OR_high),
-                width = 0.2, orientation = "y") +
-  geom_point(size = 2) +
-  geom_text(aes(x = OR_high * 1.05, label = or_text), hjust = 0, size = 3) +
-  facet_grid(group ~ ., scales = "free_y", space = "free_y") +
-  scale_x_log10(breaks = c(0.5, 1, 2)) +
-  coord_cartesian(xlim = c(0.45, xlim_right), clip = "off") +
-  labs(
-    title = "Adjusted associations with any DV",
-    subtitle = "Reference groups: 0 co-wives, no education, poorest, urban",
-    x = "Odds ratio (log scale)",
-    y = NULL
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_blank(),
-    strip.text.y = element_text(face = "bold"),
-    plot.margin = margin(5.5, 80, 5.5, 5.5)
-  )
-```
 
 ```{r, fig.height = 7, fig.width = 8, warning = F}
 res_m1 <- or_wald(m1) %>%
@@ -1206,7 +844,7 @@ ggplot(new_score, aes(x = beating_justified_score, y = pred_p,
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0, NA)) +
   scale_x_continuous(breaks = 0:5) +
   labs(
-    x = "domestic violence justification score (0–5)",
+    x = "beating-justification score (0–5)",
     y = "Predicted probability of any domestic violence",
     title = "Predicted Pr(any domestic violence) across beating-justification scores",
     subtitle = paste0(),
