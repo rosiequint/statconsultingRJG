@@ -863,10 +863,8 @@ In this document, we demonstrated how to take raw DHS data to an interpretable f
 Appendix - Characteristics table for report
 ```{r message=FALSE, warning=FALSE}
 library(dplyr)
-library(survey)
 library(gtsummary)
 
-# create a plain data frame from the final survey object
 table1_df <- dhs_surv$variables %>%
   mutate(
     any_domestic_violence = factor(
@@ -874,17 +872,33 @@ table1_df <- dhs_surv$variables %>%
       levels = c(0, 1),
       labels = c("No domestic violence", "Any domestic violence")
     ),
-    cowives_cat = factor(cowives_cat, levels = c("0", "1", "2+")),
-    contraception_dec = factor(v822, levels = c(0, 1), labels = c("No", "Yes")),
-    education = factor(v106, levels = c(0, 1, 2, 3),
-                       labels = c("None", "Primary", "Secondary", "Higher")),
-    wealth = factor(v190, levels = c(1, 2, 3, 4, 5),
-                    labels = c("Poorest", "Poorer", "Middle", "Richer", "Richest")),
-    residence = factor(v025, levels = c(1, 2),
-                       labels = c("Urban", "Rural"))
+    cowives_cat = factor(
+      cowives_cat,
+      levels = c("0", "1", "2+"),
+      labels = c("0", "1", "2+")
+    ),
+    contraception_dec = factor(
+      v822,
+      levels = c(0, 1),
+      labels = c("No", "Yes")
+    ),
+    education = factor(
+      v106,
+      levels = c(0, 1, 2, 3),
+      labels = c("None", "Primary", "Secondary", "Higher")
+    ),
+    wealth = factor(
+      v190,
+      levels = c(1, 2, 3, 4, 5),
+      labels = c("Poorest", "Poorer", "Middle", "Richer", "Richest")
+    ),
+    residence = factor(
+      v025,
+      levels = c(1, 2),
+      labels = c("Urban", "Rural")
+    )
   ) %>%
   select(
-    caseid, v001, v005,
     any_domestic_violence,
     beating_justified_score,
     cowives_cat,
@@ -892,59 +906,55 @@ table1_df <- dhs_surv$variables %>%
     education,
     wealth,
     residence
-  )
+  ) %>%
+  filter(complete.cases(.))
 
-# rebuild a survey design object for the final analytic sample
-table1_design <- svydesign(
-  ids = ~caseid,
-  strata = ~v001,
-  weights = ~v005,
-  data = table1_df
-)
-
-# generate Table 1
-tbl1 <- tbl_svysummary(
-  table1_design,
-  by = any_domestic_violence,
-  include = c(
-    beating_justified_score,
-    cowives_cat,
-    contraception_dec,
-    education,
-    wealth,
-    residence
-  ),
-  statistic = list(
-    all_continuous() ~ "{median} ({p25}, {p75})",
-    all_categorical() ~ "{n} ({p}%)"
-  ),
-  digits = list(
-    all_continuous() ~ 1,
-    all_categorical() ~ c(0, 1)
-  ),
-  label = list(
-    beating_justified_score ~ "Beating-justified score, points",
-    cowives_cat ~ "Co-wives group",
-    contraception_dec ~ "Contraception decision",
-    education ~ "Education",
-    wealth ~ "Wealth",
-    residence ~ "Residence"
-  ),
-  missing = "no",
-  percent = "column"
-) %>%
+tbl1 <- table1_df %>%
+  tbl_summary(
+    by = any_domestic_violence,
+    include = c(
+      beating_justified_score,
+      cowives_cat,
+      contraception_dec,
+      education,
+      wealth,
+      residence
+    ),
+    statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    type = list(
+      contraception_dec ~ "categorical"
+    ),
+    digits = list(
+      all_continuous() ~ 1,
+      all_categorical() ~ c(0, 1)
+    ),
+    label = list(
+      beating_justified_score ~ "Beating-justified score, points",
+      cowives_cat ~ "Co-wives group",
+      contraception_dec ~ "Contraception decision",
+      education ~ "Education",
+      wealth ~ "Wealth",
+      residence ~ "Residence"
+    ),
+    missing = "no",
+    percent = "column"
+  ) %>%
   add_overall(last = TRUE) %>%
   add_p(
     test = list(
-      beating_justified_score ~ "svy.wilcox.test",
-      all_categorical() ~ "svy.chisq.test"
-    )
+      beating_justified_score ~ "wilcox.test",
+      all_categorical() ~ "chisq.test"
+    ),
+    pvalue_fun = ~style_pvalue(.x, digits = 3)
   ) %>%
   bold_labels() %>%
-  modify_header(label ~ "**Characteristic**") %>%
+  modify_header(label = "**Characteristic**") %>%
   modify_caption("**Table 1. Characteristics of the analytic sample overall and by domestic violence status**")
 
 tbl1
-
 ```
+
 

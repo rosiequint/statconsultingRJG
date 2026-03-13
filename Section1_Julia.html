@@ -2766,102 +2766,112 @@ model outputs, and use visualizations to communicate findings
 effectively.</p>
 <p>Appendix - Characteristics table for report</p>
 <div class="sourceCode" id="cb63"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb63-2"><a href="#cb63-2" tabindex="-1"></a><span class="fu">library</span>(survey)</span>
-<span id="cb63-3"><a href="#cb63-3" tabindex="-1"></a><span class="fu">library</span>(gtsummary)</span>
-<span id="cb63-4"><a href="#cb63-4" tabindex="-1"></a></span>
-<span id="cb63-5"><a href="#cb63-5" tabindex="-1"></a><span class="co"># create a plain data frame from the final survey object</span></span>
-<span id="cb63-6"><a href="#cb63-6" tabindex="-1"></a>table1_df <span class="ot">&lt;-</span> dhs_surv<span class="sc">$</span>variables <span class="sc">%&gt;%</span></span>
-<span id="cb63-7"><a href="#cb63-7" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb63-8"><a href="#cb63-8" tabindex="-1"></a>    <span class="at">any_domestic_violence =</span> <span class="fu">factor</span>(</span>
-<span id="cb63-9"><a href="#cb63-9" tabindex="-1"></a>      any_domestic_violence,</span>
-<span id="cb63-10"><a href="#cb63-10" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>),</span>
-<span id="cb63-11"><a href="#cb63-11" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;No domestic violence&quot;</span>, <span class="st">&quot;Any domestic violence&quot;</span>)</span>
-<span id="cb63-12"><a href="#cb63-12" tabindex="-1"></a>    ),</span>
-<span id="cb63-13"><a href="#cb63-13" tabindex="-1"></a>    <span class="at">cowives_cat =</span> <span class="fu">factor</span>(cowives_cat, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;0&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="st">&quot;2+&quot;</span>)),</span>
-<span id="cb63-14"><a href="#cb63-14" tabindex="-1"></a>    <span class="at">contraception_dec =</span> <span class="fu">factor</span>(v822, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;No&quot;</span>, <span class="st">&quot;Yes&quot;</span>)),</span>
-<span id="cb63-15"><a href="#cb63-15" tabindex="-1"></a>    <span class="at">education =</span> <span class="fu">factor</span>(v106, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>),</span>
-<span id="cb63-16"><a href="#cb63-16" tabindex="-1"></a>                       <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;None&quot;</span>, <span class="st">&quot;Primary&quot;</span>, <span class="st">&quot;Secondary&quot;</span>, <span class="st">&quot;Higher&quot;</span>)),</span>
-<span id="cb63-17"><a href="#cb63-17" tabindex="-1"></a>    <span class="at">wealth =</span> <span class="fu">factor</span>(v190, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>),</span>
-<span id="cb63-18"><a href="#cb63-18" tabindex="-1"></a>                    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;Poorest&quot;</span>, <span class="st">&quot;Poorer&quot;</span>, <span class="st">&quot;Middle&quot;</span>, <span class="st">&quot;Richer&quot;</span>, <span class="st">&quot;Richest&quot;</span>)),</span>
-<span id="cb63-19"><a href="#cb63-19" tabindex="-1"></a>    <span class="at">residence =</span> <span class="fu">factor</span>(v025, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>),</span>
-<span id="cb63-20"><a href="#cb63-20" tabindex="-1"></a>                       <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;Urban&quot;</span>, <span class="st">&quot;Rural&quot;</span>))</span>
-<span id="cb63-21"><a href="#cb63-21" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb63-22"><a href="#cb63-22" tabindex="-1"></a>  <span class="fu">select</span>(</span>
-<span id="cb63-23"><a href="#cb63-23" tabindex="-1"></a>    caseid, v001, v005,</span>
-<span id="cb63-24"><a href="#cb63-24" tabindex="-1"></a>    any_domestic_violence,</span>
-<span id="cb63-25"><a href="#cb63-25" tabindex="-1"></a>    beating_justified_score,</span>
-<span id="cb63-26"><a href="#cb63-26" tabindex="-1"></a>    cowives_cat,</span>
-<span id="cb63-27"><a href="#cb63-27" tabindex="-1"></a>    contraception_dec,</span>
-<span id="cb63-28"><a href="#cb63-28" tabindex="-1"></a>    education,</span>
-<span id="cb63-29"><a href="#cb63-29" tabindex="-1"></a>    wealth,</span>
-<span id="cb63-30"><a href="#cb63-30" tabindex="-1"></a>    residence</span>
-<span id="cb63-31"><a href="#cb63-31" tabindex="-1"></a>  )</span>
-<span id="cb63-32"><a href="#cb63-32" tabindex="-1"></a></span>
-<span id="cb63-33"><a href="#cb63-33" tabindex="-1"></a><span class="co"># rebuild a survey design object for the final analytic sample</span></span>
-<span id="cb63-34"><a href="#cb63-34" tabindex="-1"></a>table1_design <span class="ot">&lt;-</span> <span class="fu">svydesign</span>(</span>
-<span id="cb63-35"><a href="#cb63-35" tabindex="-1"></a>  <span class="at">ids =</span> <span class="sc">~</span>caseid,</span>
-<span id="cb63-36"><a href="#cb63-36" tabindex="-1"></a>  <span class="at">strata =</span> <span class="sc">~</span>v001,</span>
-<span id="cb63-37"><a href="#cb63-37" tabindex="-1"></a>  <span class="at">weights =</span> <span class="sc">~</span>v005,</span>
-<span id="cb63-38"><a href="#cb63-38" tabindex="-1"></a>  <span class="at">data =</span> table1_df</span>
-<span id="cb63-39"><a href="#cb63-39" tabindex="-1"></a>)</span>
-<span id="cb63-40"><a href="#cb63-40" tabindex="-1"></a></span>
-<span id="cb63-41"><a href="#cb63-41" tabindex="-1"></a><span class="co"># generate Table 1</span></span>
-<span id="cb63-42"><a href="#cb63-42" tabindex="-1"></a>tbl1 <span class="ot">&lt;-</span> <span class="fu">tbl_svysummary</span>(</span>
-<span id="cb63-43"><a href="#cb63-43" tabindex="-1"></a>  table1_design,</span>
-<span id="cb63-44"><a href="#cb63-44" tabindex="-1"></a>  <span class="at">by =</span> any_domestic_violence,</span>
-<span id="cb63-45"><a href="#cb63-45" tabindex="-1"></a>  <span class="at">include =</span> <span class="fu">c</span>(</span>
-<span id="cb63-46"><a href="#cb63-46" tabindex="-1"></a>    beating_justified_score,</span>
-<span id="cb63-47"><a href="#cb63-47" tabindex="-1"></a>    cowives_cat,</span>
-<span id="cb63-48"><a href="#cb63-48" tabindex="-1"></a>    contraception_dec,</span>
-<span id="cb63-49"><a href="#cb63-49" tabindex="-1"></a>    education,</span>
-<span id="cb63-50"><a href="#cb63-50" tabindex="-1"></a>    wealth,</span>
-<span id="cb63-51"><a href="#cb63-51" tabindex="-1"></a>    residence</span>
-<span id="cb63-52"><a href="#cb63-52" tabindex="-1"></a>  ),</span>
-<span id="cb63-53"><a href="#cb63-53" tabindex="-1"></a>  <span class="at">statistic =</span> <span class="fu">list</span>(</span>
-<span id="cb63-54"><a href="#cb63-54" tabindex="-1"></a>    <span class="fu">all_continuous</span>() <span class="sc">~</span> <span class="st">&quot;{median} ({p25}, {p75})&quot;</span>,</span>
-<span id="cb63-55"><a href="#cb63-55" tabindex="-1"></a>    <span class="fu">all_categorical</span>() <span class="sc">~</span> <span class="st">&quot;{n} ({p}%)&quot;</span></span>
-<span id="cb63-56"><a href="#cb63-56" tabindex="-1"></a>  ),</span>
-<span id="cb63-57"><a href="#cb63-57" tabindex="-1"></a>  <span class="at">digits =</span> <span class="fu">list</span>(</span>
-<span id="cb63-58"><a href="#cb63-58" tabindex="-1"></a>    <span class="fu">all_continuous</span>() <span class="sc">~</span> <span class="dv">1</span>,</span>
-<span id="cb63-59"><a href="#cb63-59" tabindex="-1"></a>    <span class="fu">all_categorical</span>() <span class="sc">~</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
-<span id="cb63-60"><a href="#cb63-60" tabindex="-1"></a>  ),</span>
-<span id="cb63-61"><a href="#cb63-61" tabindex="-1"></a>  <span class="at">label =</span> <span class="fu">list</span>(</span>
-<span id="cb63-62"><a href="#cb63-62" tabindex="-1"></a>    beating_justified_score <span class="sc">~</span> <span class="st">&quot;Beating-justified score, points&quot;</span>,</span>
-<span id="cb63-63"><a href="#cb63-63" tabindex="-1"></a>    cowives_cat <span class="sc">~</span> <span class="st">&quot;Co-wives group&quot;</span>,</span>
-<span id="cb63-64"><a href="#cb63-64" tabindex="-1"></a>    contraception_dec <span class="sc">~</span> <span class="st">&quot;Contraception decision&quot;</span>,</span>
-<span id="cb63-65"><a href="#cb63-65" tabindex="-1"></a>    education <span class="sc">~</span> <span class="st">&quot;Education&quot;</span>,</span>
-<span id="cb63-66"><a href="#cb63-66" tabindex="-1"></a>    wealth <span class="sc">~</span> <span class="st">&quot;Wealth&quot;</span>,</span>
-<span id="cb63-67"><a href="#cb63-67" tabindex="-1"></a>    residence <span class="sc">~</span> <span class="st">&quot;Residence&quot;</span></span>
-<span id="cb63-68"><a href="#cb63-68" tabindex="-1"></a>  ),</span>
-<span id="cb63-69"><a href="#cb63-69" tabindex="-1"></a>  <span class="at">missing =</span> <span class="st">&quot;no&quot;</span>,</span>
-<span id="cb63-70"><a href="#cb63-70" tabindex="-1"></a>  <span class="at">percent =</span> <span class="st">&quot;column&quot;</span></span>
-<span id="cb63-71"><a href="#cb63-71" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
-<span id="cb63-72"><a href="#cb63-72" tabindex="-1"></a>  <span class="fu">add_overall</span>(<span class="at">last =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb63-73"><a href="#cb63-73" tabindex="-1"></a>  <span class="fu">add_p</span>(</span>
-<span id="cb63-74"><a href="#cb63-74" tabindex="-1"></a>    <span class="at">test =</span> <span class="fu">list</span>(</span>
-<span id="cb63-75"><a href="#cb63-75" tabindex="-1"></a>      beating_justified_score <span class="sc">~</span> <span class="st">&quot;svy.wilcox.test&quot;</span>,</span>
-<span id="cb63-76"><a href="#cb63-76" tabindex="-1"></a>      <span class="fu">all_categorical</span>() <span class="sc">~</span> <span class="st">&quot;svy.chisq.test&quot;</span></span>
-<span id="cb63-77"><a href="#cb63-77" tabindex="-1"></a>    )</span>
-<span id="cb63-78"><a href="#cb63-78" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb63-79"><a href="#cb63-79" tabindex="-1"></a>  <span class="fu">bold_labels</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb63-80"><a href="#cb63-80" tabindex="-1"></a>  <span class="fu">modify_header</span>(label <span class="sc">~</span> <span class="st">&quot;**Characteristic**&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb63-81"><a href="#cb63-81" tabindex="-1"></a>  <span class="fu">modify_caption</span>(<span class="st">&quot;**Table 1. Characteristics of the analytic sample overall and by domestic violence status**&quot;</span>)</span>
-<span id="cb63-82"><a href="#cb63-82" tabindex="-1"></a></span>
-<span id="cb63-83"><a href="#cb63-83" tabindex="-1"></a>tbl1</span></code></pre></div>
-<div id="ocrazgqehn" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#ocrazgqehn table {
+<span id="cb63-2"><a href="#cb63-2" tabindex="-1"></a><span class="fu">library</span>(gtsummary)</span>
+<span id="cb63-3"><a href="#cb63-3" tabindex="-1"></a></span>
+<span id="cb63-4"><a href="#cb63-4" tabindex="-1"></a>table1_df <span class="ot">&lt;-</span> dhs_surv<span class="sc">$</span>variables <span class="sc">%&gt;%</span></span>
+<span id="cb63-5"><a href="#cb63-5" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb63-6"><a href="#cb63-6" tabindex="-1"></a>    <span class="at">any_domestic_violence =</span> <span class="fu">factor</span>(</span>
+<span id="cb63-7"><a href="#cb63-7" tabindex="-1"></a>      any_domestic_violence,</span>
+<span id="cb63-8"><a href="#cb63-8" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>),</span>
+<span id="cb63-9"><a href="#cb63-9" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;No domestic violence&quot;</span>, <span class="st">&quot;Any domestic violence&quot;</span>)</span>
+<span id="cb63-10"><a href="#cb63-10" tabindex="-1"></a>    ),</span>
+<span id="cb63-11"><a href="#cb63-11" tabindex="-1"></a>    <span class="at">cowives_cat =</span> <span class="fu">factor</span>(</span>
+<span id="cb63-12"><a href="#cb63-12" tabindex="-1"></a>      cowives_cat,</span>
+<span id="cb63-13"><a href="#cb63-13" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;0&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="st">&quot;2+&quot;</span>),</span>
+<span id="cb63-14"><a href="#cb63-14" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;0&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="st">&quot;2+&quot;</span>)</span>
+<span id="cb63-15"><a href="#cb63-15" tabindex="-1"></a>    ),</span>
+<span id="cb63-16"><a href="#cb63-16" tabindex="-1"></a>    <span class="at">contraception_dec =</span> <span class="fu">factor</span>(</span>
+<span id="cb63-17"><a href="#cb63-17" tabindex="-1"></a>      v822,</span>
+<span id="cb63-18"><a href="#cb63-18" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>),</span>
+<span id="cb63-19"><a href="#cb63-19" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;No&quot;</span>, <span class="st">&quot;Yes&quot;</span>)</span>
+<span id="cb63-20"><a href="#cb63-20" tabindex="-1"></a>    ),</span>
+<span id="cb63-21"><a href="#cb63-21" tabindex="-1"></a>    <span class="at">education =</span> <span class="fu">factor</span>(</span>
+<span id="cb63-22"><a href="#cb63-22" tabindex="-1"></a>      v106,</span>
+<span id="cb63-23"><a href="#cb63-23" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>),</span>
+<span id="cb63-24"><a href="#cb63-24" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;None&quot;</span>, <span class="st">&quot;Primary&quot;</span>, <span class="st">&quot;Secondary&quot;</span>, <span class="st">&quot;Higher&quot;</span>)</span>
+<span id="cb63-25"><a href="#cb63-25" tabindex="-1"></a>    ),</span>
+<span id="cb63-26"><a href="#cb63-26" tabindex="-1"></a>    <span class="at">wealth =</span> <span class="fu">factor</span>(</span>
+<span id="cb63-27"><a href="#cb63-27" tabindex="-1"></a>      v190,</span>
+<span id="cb63-28"><a href="#cb63-28" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>),</span>
+<span id="cb63-29"><a href="#cb63-29" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;Poorest&quot;</span>, <span class="st">&quot;Poorer&quot;</span>, <span class="st">&quot;Middle&quot;</span>, <span class="st">&quot;Richer&quot;</span>, <span class="st">&quot;Richest&quot;</span>)</span>
+<span id="cb63-30"><a href="#cb63-30" tabindex="-1"></a>    ),</span>
+<span id="cb63-31"><a href="#cb63-31" tabindex="-1"></a>    <span class="at">residence =</span> <span class="fu">factor</span>(</span>
+<span id="cb63-32"><a href="#cb63-32" tabindex="-1"></a>      v025,</span>
+<span id="cb63-33"><a href="#cb63-33" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>),</span>
+<span id="cb63-34"><a href="#cb63-34" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;Urban&quot;</span>, <span class="st">&quot;Rural&quot;</span>)</span>
+<span id="cb63-35"><a href="#cb63-35" tabindex="-1"></a>    )</span>
+<span id="cb63-36"><a href="#cb63-36" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb63-37"><a href="#cb63-37" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb63-38"><a href="#cb63-38" tabindex="-1"></a>    any_domestic_violence,</span>
+<span id="cb63-39"><a href="#cb63-39" tabindex="-1"></a>    beating_justified_score,</span>
+<span id="cb63-40"><a href="#cb63-40" tabindex="-1"></a>    cowives_cat,</span>
+<span id="cb63-41"><a href="#cb63-41" tabindex="-1"></a>    contraception_dec,</span>
+<span id="cb63-42"><a href="#cb63-42" tabindex="-1"></a>    education,</span>
+<span id="cb63-43"><a href="#cb63-43" tabindex="-1"></a>    wealth,</span>
+<span id="cb63-44"><a href="#cb63-44" tabindex="-1"></a>    residence</span>
+<span id="cb63-45"><a href="#cb63-45" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb63-46"><a href="#cb63-46" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">complete.cases</span>(.))</span>
+<span id="cb63-47"><a href="#cb63-47" tabindex="-1"></a></span>
+<span id="cb63-48"><a href="#cb63-48" tabindex="-1"></a>tbl1 <span class="ot">&lt;-</span> table1_df <span class="sc">%&gt;%</span></span>
+<span id="cb63-49"><a href="#cb63-49" tabindex="-1"></a>  <span class="fu">tbl_summary</span>(</span>
+<span id="cb63-50"><a href="#cb63-50" tabindex="-1"></a>    <span class="at">by =</span> any_domestic_violence,</span>
+<span id="cb63-51"><a href="#cb63-51" tabindex="-1"></a>    <span class="at">include =</span> <span class="fu">c</span>(</span>
+<span id="cb63-52"><a href="#cb63-52" tabindex="-1"></a>      beating_justified_score,</span>
+<span id="cb63-53"><a href="#cb63-53" tabindex="-1"></a>      cowives_cat,</span>
+<span id="cb63-54"><a href="#cb63-54" tabindex="-1"></a>      contraception_dec,</span>
+<span id="cb63-55"><a href="#cb63-55" tabindex="-1"></a>      education,</span>
+<span id="cb63-56"><a href="#cb63-56" tabindex="-1"></a>      wealth,</span>
+<span id="cb63-57"><a href="#cb63-57" tabindex="-1"></a>      residence</span>
+<span id="cb63-58"><a href="#cb63-58" tabindex="-1"></a>    ),</span>
+<span id="cb63-59"><a href="#cb63-59" tabindex="-1"></a>    <span class="at">statistic =</span> <span class="fu">list</span>(</span>
+<span id="cb63-60"><a href="#cb63-60" tabindex="-1"></a>      <span class="fu">all_continuous</span>() <span class="sc">~</span> <span class="st">&quot;{median} ({p25}, {p75})&quot;</span>,</span>
+<span id="cb63-61"><a href="#cb63-61" tabindex="-1"></a>      <span class="fu">all_categorical</span>() <span class="sc">~</span> <span class="st">&quot;{n} ({p}%)&quot;</span></span>
+<span id="cb63-62"><a href="#cb63-62" tabindex="-1"></a>    ),</span>
+<span id="cb63-63"><a href="#cb63-63" tabindex="-1"></a>    <span class="at">type =</span> <span class="fu">list</span>(</span>
+<span id="cb63-64"><a href="#cb63-64" tabindex="-1"></a>      contraception_dec <span class="sc">~</span> <span class="st">&quot;categorical&quot;</span></span>
+<span id="cb63-65"><a href="#cb63-65" tabindex="-1"></a>    ),</span>
+<span id="cb63-66"><a href="#cb63-66" tabindex="-1"></a>    <span class="at">digits =</span> <span class="fu">list</span>(</span>
+<span id="cb63-67"><a href="#cb63-67" tabindex="-1"></a>      <span class="fu">all_continuous</span>() <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb63-68"><a href="#cb63-68" tabindex="-1"></a>      <span class="fu">all_categorical</span>() <span class="sc">~</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb63-69"><a href="#cb63-69" tabindex="-1"></a>    ),</span>
+<span id="cb63-70"><a href="#cb63-70" tabindex="-1"></a>    <span class="at">label =</span> <span class="fu">list</span>(</span>
+<span id="cb63-71"><a href="#cb63-71" tabindex="-1"></a>      beating_justified_score <span class="sc">~</span> <span class="st">&quot;Beating-justified score, points&quot;</span>,</span>
+<span id="cb63-72"><a href="#cb63-72" tabindex="-1"></a>      cowives_cat <span class="sc">~</span> <span class="st">&quot;Co-wives group&quot;</span>,</span>
+<span id="cb63-73"><a href="#cb63-73" tabindex="-1"></a>      contraception_dec <span class="sc">~</span> <span class="st">&quot;Contraception decision&quot;</span>,</span>
+<span id="cb63-74"><a href="#cb63-74" tabindex="-1"></a>      education <span class="sc">~</span> <span class="st">&quot;Education&quot;</span>,</span>
+<span id="cb63-75"><a href="#cb63-75" tabindex="-1"></a>      wealth <span class="sc">~</span> <span class="st">&quot;Wealth&quot;</span>,</span>
+<span id="cb63-76"><a href="#cb63-76" tabindex="-1"></a>      residence <span class="sc">~</span> <span class="st">&quot;Residence&quot;</span></span>
+<span id="cb63-77"><a href="#cb63-77" tabindex="-1"></a>    ),</span>
+<span id="cb63-78"><a href="#cb63-78" tabindex="-1"></a>    <span class="at">missing =</span> <span class="st">&quot;no&quot;</span>,</span>
+<span id="cb63-79"><a href="#cb63-79" tabindex="-1"></a>    <span class="at">percent =</span> <span class="st">&quot;column&quot;</span></span>
+<span id="cb63-80"><a href="#cb63-80" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb63-81"><a href="#cb63-81" tabindex="-1"></a>  <span class="fu">add_overall</span>(<span class="at">last =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb63-82"><a href="#cb63-82" tabindex="-1"></a>  <span class="fu">add_p</span>(</span>
+<span id="cb63-83"><a href="#cb63-83" tabindex="-1"></a>    <span class="at">test =</span> <span class="fu">list</span>(</span>
+<span id="cb63-84"><a href="#cb63-84" tabindex="-1"></a>      beating_justified_score <span class="sc">~</span> <span class="st">&quot;wilcox.test&quot;</span>,</span>
+<span id="cb63-85"><a href="#cb63-85" tabindex="-1"></a>      <span class="fu">all_categorical</span>() <span class="sc">~</span> <span class="st">&quot;chisq.test&quot;</span></span>
+<span id="cb63-86"><a href="#cb63-86" tabindex="-1"></a>    ),</span>
+<span id="cb63-87"><a href="#cb63-87" tabindex="-1"></a>    <span class="at">pvalue_fun =</span> <span class="sc">~</span><span class="fu">style_pvalue</span>(.x, <span class="at">digits =</span> <span class="dv">3</span>)</span>
+<span id="cb63-88"><a href="#cb63-88" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb63-89"><a href="#cb63-89" tabindex="-1"></a>  <span class="fu">bold_labels</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb63-90"><a href="#cb63-90" tabindex="-1"></a>  <span class="fu">modify_header</span>(<span class="at">label =</span> <span class="st">&quot;**Characteristic**&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb63-91"><a href="#cb63-91" tabindex="-1"></a>  <span class="fu">modify_caption</span>(<span class="st">&quot;**Table 1. Characteristics of the analytic sample overall and by domestic violence status**&quot;</span>)</span>
+<span id="cb63-92"><a href="#cb63-92" tabindex="-1"></a></span>
+<span id="cb63-93"><a href="#cb63-93" tabindex="-1"></a>tbl1</span></code></pre></div>
+<div id="gzawacphui" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#gzawacphui table {
 font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 -webkit-font-smoothing: antialiased;
 -moz-osx-font-smoothing: grayscale;
 }
-#ocrazgqehn thead, #ocrazgqehn tbody, #ocrazgqehn tfoot, #ocrazgqehn tr, #ocrazgqehn td, #ocrazgqehn th {
+#gzawacphui thead, #gzawacphui tbody, #gzawacphui tfoot, #gzawacphui tr, #gzawacphui td, #gzawacphui th {
 border-style: none;
 }
-#ocrazgqehn p {
+#gzawacphui p {
 margin: 0;
 padding: 0;
 }
-#ocrazgqehn .gt_table {
+#gzawacphui .gt_table {
 display: table;
 border-collapse: collapse;
 line-height: normal;
@@ -2886,11 +2896,11 @@ border-left-style: none;
 border-left-width: 2px;
 border-left-color: #D3D3D3;
 }
-#ocrazgqehn .gt_caption {
+#gzawacphui .gt_caption {
 padding-top: 4px;
 padding-bottom: 4px;
 }
-#ocrazgqehn .gt_title {
+#gzawacphui .gt_title {
 color: #333333;
 font-size: 125%;
 font-weight: initial;
@@ -2901,7 +2911,7 @@ padding-right: 5px;
 border-bottom-color: #FFFFFF;
 border-bottom-width: 0;
 }
-#ocrazgqehn .gt_subtitle {
+#gzawacphui .gt_subtitle {
 color: #333333;
 font-size: 85%;
 font-weight: initial;
@@ -2912,7 +2922,7 @@ padding-right: 5px;
 border-top-color: #FFFFFF;
 border-top-width: 0;
 }
-#ocrazgqehn .gt_heading {
+#gzawacphui .gt_heading {
 background-color: #FFFFFF;
 text-align: center;
 border-bottom-color: #FFFFFF;
@@ -2923,12 +2933,12 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#ocrazgqehn .gt_bottom_border {
+#gzawacphui .gt_bottom_border {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#ocrazgqehn .gt_col_headings {
+#gzawacphui .gt_col_headings {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -2942,7 +2952,7 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#ocrazgqehn .gt_col_heading {
+#gzawacphui .gt_col_heading {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2961,7 +2971,7 @@ padding-left: 5px;
 padding-right: 5px;
 overflow-x: hidden;
 }
-#ocrazgqehn .gt_column_spanner_outer {
+#gzawacphui .gt_column_spanner_outer {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2972,13 +2982,13 @@ padding-bottom: 0;
 padding-left: 4px;
 padding-right: 4px;
 }
-#ocrazgqehn .gt_column_spanner_outer:first-child {
+#gzawacphui .gt_column_spanner_outer:first-child {
 padding-left: 0;
 }
-#ocrazgqehn .gt_column_spanner_outer:last-child {
+#gzawacphui .gt_column_spanner_outer:last-child {
 padding-right: 0;
 }
-#ocrazgqehn .gt_column_spanner {
+#gzawacphui .gt_column_spanner {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
@@ -2989,10 +2999,10 @@ overflow-x: hidden;
 display: inline-block;
 width: 100%;
 }
-#ocrazgqehn .gt_spanner_row {
+#gzawacphui .gt_spanner_row {
 border-bottom-style: hidden;
 }
-#ocrazgqehn .gt_group_heading {
+#gzawacphui .gt_group_heading {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3017,7 +3027,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 text-align: left;
 }
-#ocrazgqehn .gt_empty_group_heading {
+#gzawacphui .gt_empty_group_heading {
 padding: 0.5px;
 color: #333333;
 background-color: #FFFFFF;
@@ -3031,13 +3041,13 @@ border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 vertical-align: middle;
 }
-#ocrazgqehn .gt_from_md > :first-child {
+#gzawacphui .gt_from_md > :first-child {
 margin-top: 0;
 }
-#ocrazgqehn .gt_from_md > :last-child {
+#gzawacphui .gt_from_md > :last-child {
 margin-bottom: 0;
 }
-#ocrazgqehn .gt_row {
+#gzawacphui .gt_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3055,7 +3065,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 overflow-x: hidden;
 }
-#ocrazgqehn .gt_stub {
+#gzawacphui .gt_stub {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -3067,7 +3077,7 @@ border-right-color: #D3D3D3;
 padding-left: 5px;
 padding-right: 5px;
 }
-#ocrazgqehn .gt_stub_row_group {
+#gzawacphui .gt_stub_row_group {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -3080,13 +3090,13 @@ padding-left: 5px;
 padding-right: 5px;
 vertical-align: top;
 }
-#ocrazgqehn .gt_row_group_first td {
+#gzawacphui .gt_row_group_first td {
 border-top-width: 2px;
 }
-#ocrazgqehn .gt_row_group_first th {
+#gzawacphui .gt_row_group_first th {
 border-top-width: 2px;
 }
-#ocrazgqehn .gt_summary_row {
+#gzawacphui .gt_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -3095,14 +3105,14 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#ocrazgqehn .gt_first_summary_row {
+#gzawacphui .gt_first_summary_row {
 border-top-style: solid;
 border-top-color: #D3D3D3;
 }
-#ocrazgqehn .gt_first_summary_row.thick {
+#gzawacphui .gt_first_summary_row.thick {
 border-top-width: 2px;
 }
-#ocrazgqehn .gt_last_summary_row {
+#gzawacphui .gt_last_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3111,7 +3121,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#ocrazgqehn .gt_grand_summary_row {
+#gzawacphui .gt_grand_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -3120,7 +3130,7 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#ocrazgqehn .gt_first_grand_summary_row {
+#gzawacphui .gt_first_grand_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3129,7 +3139,7 @@ border-top-style: double;
 border-top-width: 6px;
 border-top-color: #D3D3D3;
 }
-#ocrazgqehn .gt_last_grand_summary_row_top {
+#gzawacphui .gt_last_grand_summary_row_top {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -3138,10 +3148,10 @@ border-bottom-style: double;
 border-bottom-width: 6px;
 border-bottom-color: #D3D3D3;
 }
-#ocrazgqehn .gt_striped {
+#gzawacphui .gt_striped {
 background-color: rgba(128, 128, 128, 0.05);
 }
-#ocrazgqehn .gt_table_body {
+#gzawacphui .gt_table_body {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -3149,7 +3159,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#ocrazgqehn .gt_footnotes {
+#gzawacphui .gt_footnotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -3162,7 +3172,7 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#ocrazgqehn .gt_footnote {
+#gzawacphui .gt_footnote {
 margin: 0px;
 font-size: 90%;
 padding-top: 4px;
@@ -3170,7 +3180,7 @@ padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#ocrazgqehn .gt_sourcenotes {
+#gzawacphui .gt_sourcenotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -3183,64 +3193,64 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#ocrazgqehn .gt_sourcenote {
+#gzawacphui .gt_sourcenote {
 font-size: 90%;
 padding-top: 4px;
 padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#ocrazgqehn .gt_left {
+#gzawacphui .gt_left {
 text-align: left;
 }
-#ocrazgqehn .gt_center {
+#gzawacphui .gt_center {
 text-align: center;
 }
-#ocrazgqehn .gt_right {
+#gzawacphui .gt_right {
 text-align: right;
 font-variant-numeric: tabular-nums;
 }
-#ocrazgqehn .gt_font_normal {
+#gzawacphui .gt_font_normal {
 font-weight: normal;
 }
-#ocrazgqehn .gt_font_bold {
+#gzawacphui .gt_font_bold {
 font-weight: bold;
 }
-#ocrazgqehn .gt_font_italic {
+#gzawacphui .gt_font_italic {
 font-style: italic;
 }
-#ocrazgqehn .gt_super {
+#gzawacphui .gt_super {
 font-size: 65%;
 }
-#ocrazgqehn .gt_footnote_marks {
+#gzawacphui .gt_footnote_marks {
 font-size: 75%;
 vertical-align: 0.4em;
 position: initial;
 }
-#ocrazgqehn .gt_asterisk {
+#gzawacphui .gt_asterisk {
 font-size: 100%;
 vertical-align: 0;
 }
-#ocrazgqehn .gt_indent_1 {
+#gzawacphui .gt_indent_1 {
 text-indent: 5px;
 }
-#ocrazgqehn .gt_indent_2 {
+#gzawacphui .gt_indent_2 {
 text-indent: 10px;
 }
-#ocrazgqehn .gt_indent_3 {
+#gzawacphui .gt_indent_3 {
 text-indent: 15px;
 }
-#ocrazgqehn .gt_indent_4 {
+#gzawacphui .gt_indent_4 {
 text-indent: 20px;
 }
-#ocrazgqehn .gt_indent_5 {
+#gzawacphui .gt_indent_5 {
 text-indent: 25px;
 }
-#ocrazgqehn .katex-display {
+#gzawacphui .katex-display {
 display: inline-flex !important;
 margin-bottom: 0.75em !important;
 }
-#ocrazgqehn div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#gzawacphui div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
 height: 0px !important;
 }
 </style>
@@ -3250,11 +3260,11 @@ height: 0px !important;
     <tr class="gt_col_headings">
       <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="label"><span class="gt_from_md"><strong>Characteristic</strong></span></th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_1"><span class="gt_from_md"><strong>No domestic violence</strong><br />
-N = 934</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span></th>
+N = 956</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span></th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_2"><span class="gt_from_md"><strong>Any domestic violence</strong><br />
-N = 755</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span></th>
+N = 738</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span></th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_0"><span class="gt_from_md"><strong>Overall</strong><br />
-N = 1,689</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span></th>
+N = 1,694</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span></th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="p.value"><span class="gt_from_md"><strong>p-value</strong></span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>2</sup></span></th>
     </tr>
   </thead>
@@ -3265,129 +3275,139 @@ N = 1,689</span><span class="gt_footnote_marks" style="white-space:nowrap;font-s
 <td headers="stat_0" class="gt_row gt_center"><br /></td>
 <td headers="p.value" class="gt_row gt_center">&lt;0.001</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    0</td>
-<td headers="stat_1" class="gt_row gt_center">394 (42.1%)</td>
-<td headers="stat_2" class="gt_row gt_center">221 (29.2%)</td>
-<td headers="stat_0" class="gt_row gt_center">614 (36.4%)</td>
+<td headers="stat_1" class="gt_row gt_center">379 (39.6%)</td>
+<td headers="stat_2" class="gt_row gt_center">230 (31.2%)</td>
+<td headers="stat_0" class="gt_row gt_center">609 (36.0%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    1</td>
-<td headers="stat_1" class="gt_row gt_center">45 (4.8%)</td>
-<td headers="stat_2" class="gt_row gt_center">66 (8.7%)</td>
-<td headers="stat_0" class="gt_row gt_center">111 (6.6%)</td>
+<td headers="stat_1" class="gt_row gt_center">49 (5.1%)</td>
+<td headers="stat_2" class="gt_row gt_center">52 (7.0%)</td>
+<td headers="stat_0" class="gt_row gt_center">101 (6.0%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    2</td>
-<td headers="stat_1" class="gt_row gt_center">92 (9.9%)</td>
-<td headers="stat_2" class="gt_row gt_center">122 (16.1%)</td>
-<td headers="stat_0" class="gt_row gt_center">214 (12.7%)</td>
+<td headers="stat_1" class="gt_row gt_center">98 (10.3%)</td>
+<td headers="stat_2" class="gt_row gt_center">99 (13.4%)</td>
+<td headers="stat_0" class="gt_row gt_center">197 (11.6%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    3</td>
-<td headers="stat_1" class="gt_row gt_center">152 (16.2%)</td>
-<td headers="stat_2" class="gt_row gt_center">158 (20.9%)</td>
-<td headers="stat_0" class="gt_row gt_center">309 (18.3%)</td>
+<td headers="stat_1" class="gt_row gt_center">179 (18.7%)</td>
+<td headers="stat_2" class="gt_row gt_center">152 (20.6%)</td>
+<td headers="stat_0" class="gt_row gt_center">331 (19.5%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    4</td>
-<td headers="stat_1" class="gt_row gt_center">106 (11.3%)</td>
-<td headers="stat_2" class="gt_row gt_center">104 (13.8%)</td>
-<td headers="stat_0" class="gt_row gt_center">210 (12.5%)</td>
+<td headers="stat_1" class="gt_row gt_center">106 (11.1%)</td>
+<td headers="stat_2" class="gt_row gt_center">109 (14.8%)</td>
+<td headers="stat_0" class="gt_row gt_center">215 (12.7%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    5</td>
-<td headers="stat_1" class="gt_row gt_center">146 (15.6%)</td>
-<td headers="stat_2" class="gt_row gt_center">85 (11.3%)</td>
-<td headers="stat_0" class="gt_row gt_center">231 (13.7%)</td>
+<td headers="stat_1" class="gt_row gt_center">145 (15.2%)</td>
+<td headers="stat_2" class="gt_row gt_center">96 (13.0%)</td>
+<td headers="stat_0" class="gt_row gt_center">241 (14.2%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Co-wives group</td>
 <td headers="stat_1" class="gt_row gt_center"><br /></td>
 <td headers="stat_2" class="gt_row gt_center"><br /></td>
 <td headers="stat_0" class="gt_row gt_center"><br /></td>
-<td headers="p.value" class="gt_row gt_center">0.3</td></tr>
+<td headers="p.value" class="gt_row gt_center">0.360</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    0</td>
-<td headers="stat_1" class="gt_row gt_center">701 (75.1%)</td>
-<td headers="stat_2" class="gt_row gt_center">542 (71.8%)</td>
-<td headers="stat_0" class="gt_row gt_center">1,243 (73.6%)</td>
+<td headers="stat_1" class="gt_row gt_center">693 (72.5%)</td>
+<td headers="stat_2" class="gt_row gt_center">516 (69.9%)</td>
+<td headers="stat_0" class="gt_row gt_center">1,209 (71.4%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    1</td>
-<td headers="stat_1" class="gt_row gt_center">193 (20.6%)</td>
-<td headers="stat_2" class="gt_row gt_center">182 (24.2%)</td>
-<td headers="stat_0" class="gt_row gt_center">375 (22.2%)</td>
+<td headers="stat_1" class="gt_row gt_center">214 (22.4%)</td>
+<td headers="stat_2" class="gt_row gt_center">187 (25.3%)</td>
+<td headers="stat_0" class="gt_row gt_center">401 (23.7%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    2+</td>
-<td headers="stat_1" class="gt_row gt_center">40 (4.3%)</td>
-<td headers="stat_2" class="gt_row gt_center">31 (4.1%)</td>
-<td headers="stat_0" class="gt_row gt_center">71 (4.2%)</td>
+<td headers="stat_1" class="gt_row gt_center">49 (5.1%)</td>
+<td headers="stat_2" class="gt_row gt_center">35 (4.7%)</td>
+<td headers="stat_0" class="gt_row gt_center">84 (5.0%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Contraception decision</td>
-<td headers="stat_1" class="gt_row gt_center">753 (80.6%)</td>
-<td headers="stat_2" class="gt_row gt_center">598 (79.2%)</td>
-<td headers="stat_0" class="gt_row gt_center">1,351 (79.9%)</td>
-<td headers="p.value" class="gt_row gt_center">0.5</td></tr>
+<td headers="stat_1" class="gt_row gt_center"><br /></td>
+<td headers="stat_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_0" class="gt_row gt_center"><br /></td>
+<td headers="p.value" class="gt_row gt_center">0.842</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    No</td>
+<td headers="stat_1" class="gt_row gt_center">192 (20.1%)</td>
+<td headers="stat_2" class="gt_row gt_center">152 (20.6%)</td>
+<td headers="stat_0" class="gt_row gt_center">344 (20.3%)</td>
+<td headers="p.value" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">    Yes</td>
+<td headers="stat_1" class="gt_row gt_center">764 (79.9%)</td>
+<td headers="stat_2" class="gt_row gt_center">586 (79.4%)</td>
+<td headers="stat_0" class="gt_row gt_center">1,350 (79.7%)</td>
+<td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Education</td>
 <td headers="stat_1" class="gt_row gt_center"><br /></td>
 <td headers="stat_2" class="gt_row gt_center"><br /></td>
 <td headers="stat_0" class="gt_row gt_center"><br /></td>
-<td headers="p.value" class="gt_row gt_center">0.11</td></tr>
+<td headers="p.value" class="gt_row gt_center">0.383</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    None</td>
-<td headers="stat_1" class="gt_row gt_center">663 (71.0%)</td>
-<td headers="stat_2" class="gt_row gt_center">518 (68.6%)</td>
-<td headers="stat_0" class="gt_row gt_center">1,181 (69.9%)</td>
+<td headers="stat_1" class="gt_row gt_center">687 (71.9%)</td>
+<td headers="stat_2" class="gt_row gt_center">512 (69.4%)</td>
+<td headers="stat_0" class="gt_row gt_center">1,199 (70.8%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Primary</td>
-<td headers="stat_1" class="gt_row gt_center">120 (12.9%)</td>
-<td headers="stat_2" class="gt_row gt_center">114 (15.0%)</td>
-<td headers="stat_0" class="gt_row gt_center">234 (13.8%)</td>
+<td headers="stat_1" class="gt_row gt_center">115 (12.0%)</td>
+<td headers="stat_2" class="gt_row gt_center">104 (14.1%)</td>
+<td headers="stat_0" class="gt_row gt_center">219 (12.9%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Secondary</td>
-<td headers="stat_1" class="gt_row gt_center">124 (13.3%)</td>
-<td headers="stat_2" class="gt_row gt_center">115 (15.2%)</td>
-<td headers="stat_0" class="gt_row gt_center">239 (14.1%)</td>
+<td headers="stat_1" class="gt_row gt_center">129 (13.5%)</td>
+<td headers="stat_2" class="gt_row gt_center">108 (14.6%)</td>
+<td headers="stat_0" class="gt_row gt_center">237 (14.0%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Higher</td>
-<td headers="stat_1" class="gt_row gt_center">27 (2.9%)</td>
-<td headers="stat_2" class="gt_row gt_center">9 (1.2%)</td>
-<td headers="stat_0" class="gt_row gt_center">36 (2.1%)</td>
+<td headers="stat_1" class="gt_row gt_center">25 (2.6%)</td>
+<td headers="stat_2" class="gt_row gt_center">14 (1.9%)</td>
+<td headers="stat_0" class="gt_row gt_center">39 (2.3%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Wealth</td>
 <td headers="stat_1" class="gt_row gt_center"><br /></td>
 <td headers="stat_2" class="gt_row gt_center"><br /></td>
 <td headers="stat_0" class="gt_row gt_center"><br /></td>
-<td headers="p.value" class="gt_row gt_center">0.11</td></tr>
+<td headers="p.value" class="gt_row gt_center">0.166</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Poorest</td>
-<td headers="stat_1" class="gt_row gt_center">232 (24.8%)</td>
-<td headers="stat_2" class="gt_row gt_center">149 (19.7%)</td>
-<td headers="stat_0" class="gt_row gt_center">380 (22.5%)</td>
+<td headers="stat_1" class="gt_row gt_center">252 (26.4%)</td>
+<td headers="stat_2" class="gt_row gt_center">170 (23.0%)</td>
+<td headers="stat_0" class="gt_row gt_center">422 (24.9%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Poorer</td>
-<td headers="stat_1" class="gt_row gt_center">188 (20.2%)</td>
-<td headers="stat_2" class="gt_row gt_center">167 (22.1%)</td>
-<td headers="stat_0" class="gt_row gt_center">356 (21.0%)</td>
+<td headers="stat_1" class="gt_row gt_center">202 (21.1%)</td>
+<td headers="stat_2" class="gt_row gt_center">171 (23.2%)</td>
+<td headers="stat_0" class="gt_row gt_center">373 (22.0%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Middle</td>
-<td headers="stat_1" class="gt_row gt_center">162 (17.3%)</td>
-<td headers="stat_2" class="gt_row gt_center">161 (21.3%)</td>
-<td headers="stat_0" class="gt_row gt_center">323 (19.1%)</td>
+<td headers="stat_1" class="gt_row gt_center">192 (20.1%)</td>
+<td headers="stat_2" class="gt_row gt_center">169 (22.9%)</td>
+<td headers="stat_0" class="gt_row gt_center">361 (21.3%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Richer</td>
-<td headers="stat_1" class="gt_row gt_center">184 (19.7%)</td>
-<td headers="stat_2" class="gt_row gt_center">164 (21.8%)</td>
-<td headers="stat_0" class="gt_row gt_center">348 (20.6%)</td>
+<td headers="stat_1" class="gt_row gt_center">184 (19.2%)</td>
+<td headers="stat_2" class="gt_row gt_center">149 (20.2%)</td>
+<td headers="stat_0" class="gt_row gt_center">333 (19.7%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Richest</td>
-<td headers="stat_1" class="gt_row gt_center">168 (18.0%)</td>
-<td headers="stat_2" class="gt_row gt_center">114 (15.1%)</td>
-<td headers="stat_0" class="gt_row gt_center">282 (16.7%)</td>
+<td headers="stat_1" class="gt_row gt_center">126 (13.2%)</td>
+<td headers="stat_2" class="gt_row gt_center">79 (10.7%)</td>
+<td headers="stat_0" class="gt_row gt_center">205 (12.1%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Residence</td>
 <td headers="stat_1" class="gt_row gt_center"><br /></td>
 <td headers="stat_2" class="gt_row gt_center"><br /></td>
 <td headers="stat_0" class="gt_row gt_center"><br /></td>
-<td headers="p.value" class="gt_row gt_center">0.6</td></tr>
+<td headers="p.value" class="gt_row gt_center">0.144</td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Urban</td>
-<td headers="stat_1" class="gt_row gt_center">350 (37.4%)</td>
-<td headers="stat_2" class="gt_row gt_center">271 (35.9%)</td>
-<td headers="stat_0" class="gt_row gt_center">621 (36.7%)</td>
+<td headers="stat_1" class="gt_row gt_center">334 (34.9%)</td>
+<td headers="stat_2" class="gt_row gt_center">232 (31.4%)</td>
+<td headers="stat_0" class="gt_row gt_center">566 (33.4%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
     <tr><td headers="label" class="gt_row gt_left">    Rural</td>
-<td headers="stat_1" class="gt_row gt_center">585 (62.6%)</td>
-<td headers="stat_2" class="gt_row gt_center">484 (64.1%)</td>
-<td headers="stat_0" class="gt_row gt_center">1,069 (63.3%)</td>
+<td headers="stat_1" class="gt_row gt_center">622 (65.1%)</td>
+<td headers="stat_2" class="gt_row gt_center">506 (68.6%)</td>
+<td headers="stat_0" class="gt_row gt_center">1,128 (66.6%)</td>
 <td headers="p.value" class="gt_row gt_center"><br /></td></tr>
   </tbody>
   <tfoot>
@@ -3395,7 +3415,7 @@ N = 1,689</span><span class="gt_footnote_marks" style="white-space:nowrap;font-s
       <td class="gt_footnote" colspan="5"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span> <span class="gt_from_md">n (%)</span></td>
     </tr>
     <tr class="gt_footnotes">
-      <td class="gt_footnote" colspan="5"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>2</sup></span> <span class="gt_from_md">Pearson’s X^2: Rao &amp; Scott adjustment</span></td>
+      <td class="gt_footnote" colspan="5"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>2</sup></span> <span class="gt_from_md">Pearson’s Chi-squared test</span></td>
     </tr>
   </tfoot>
 </table>
